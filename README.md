@@ -1,1 +1,4 @@
-# simulator
+# # Na pasta do projecto
+git init
+git add .
+git commit -m "primeiro commit"
