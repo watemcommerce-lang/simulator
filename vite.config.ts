@@ -7,22 +7,10 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
-      "@": path.resolve(import.meta.dirname, "client", "src"),
+      // Ajustado para procurar na mesma pasta onde o ficheiro está
+      "@": path.resolve(import.meta.dirname, ""), 
       "@shared": path.resolve(import.meta.dirname, "shared"),
     },
   },
-  envDir: path.resolve(import.meta.dirname),
-  root: path.resolve(import.meta.dirname, "client"),
-  publicDir: path.resolve(import.meta.dirname, "client", "public"),
-  build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
-    emptyOutDir: true,
-  },
-  server: {
-    host: true,
-    fs: {
-      strict: true,
-      deny: ["**/.*"],
-    },
-  },
+  // Removemos a configuração 'root' e 'client' para ele ler os ficheiros soltos
 });
