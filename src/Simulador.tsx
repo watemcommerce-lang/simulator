@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { QuestionCard } from "@/components/LatexRenderer";
+import { QuestionCard } from "./LatexRenderer";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Clock, ChevronLeft, ChevronRight, CheckSquare, Loader2 } from "lucide-react";
