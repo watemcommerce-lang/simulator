@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { LatexRenderer } from "@/components/LatexRenderer";
+import { LatexRenderer } from "./LatexRenderer";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, XCircle, ChevronDown, ChevronUp, Loader2, RefreshCw, Trophy } from "lucide-react";
 
