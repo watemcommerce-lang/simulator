@@ -52,7 +52,7 @@ app.use(
 // =============================================================================
 
 if (isProd) {
-  const distPath = path.resolve(import.meta.dirname, "../../dist/public");
+const distPath = path.resolve(import.meta.dirname, "public");
   app.use(express.static(distPath));
 
   // SPA fallback — todas as rotas não-API servem o index.html
