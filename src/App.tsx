@@ -5,6 +5,7 @@ import Dashboard from "@/Dashboard";
 import Simulador from "@/Simulador";
 import Resultado from "@/Resultado";
 import Historico from "@/Historico";
+// import AuthPage from "@/AuthPage";
 import { Loader2 } from "lucide-react";
 
 function ProtectedRoute({
@@ -35,9 +36,11 @@ export default function App() {
       <Navbar />
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <Switch>
-        <Route path="/login">
-          <AuthPage /> 
-        </Route>
+       <Route path="/login">
+        <div className="flex h-[60vh] items-center justify-center text-muted-foreground">
+          Página de Login em breve...
+        </div>
+       </Route>
 
          <Route path="/">
            <Dashboard />
