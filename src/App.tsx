@@ -35,11 +35,9 @@ export default function App() {
       <Navbar />
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <Switch>
-          <Route path="/login">
-            <div className="flex h-[60vh] items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          </Route>
+        <Route path="/login">
+          <AuthPage /> 
+        </Route>
 
           <Route path="/">
             <ProtectedRoute><Dashboard /></ProtectedRoute>
