@@ -25,7 +25,7 @@ function ProtectedRoute({
     );
   }
 
-  if (!session) return <Redirect to="/login" />;
+ // if (!session) return <Redirect to="/login" />;
   if (adminOnly && session.role !== "admin") return <Redirect to="/" />;
   return <>{children}</>;
 }
@@ -40,8 +40,8 @@ export default function App() {
           <AuthPage /> 
         </Route>
 
-          <Route path="/">
-            <ProtectedRoute><Dashboard /></ProtectedRoute>
+         <Route path="/">
+           <Dashboard />
           </Route>
 
           <Route path="/simulado">
