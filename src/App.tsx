@@ -5,7 +5,6 @@ import Dashboard from "@/Dashboard";
 import Simulador from "@/Simulador";
 import Resultado from "@/Resultado";
 import Historico from "@/Historico";
-import AuthPage from "@/AuthPage";
 import { Loader2 } from "lucide-react";
 
 function ProtectedRoute({
