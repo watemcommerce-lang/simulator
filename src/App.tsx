@@ -6,28 +6,25 @@ import Simulador from "@/Simulador";
 import Resultado from "@/Resultado";
 import Historico from "@/Historico";
 import Questoes from "@/Questoes";
+import AdminQuestoes from "@/AdminQuestoes";
 import Login from "@/Login";
 import { Loader2 } from "lucide-react";
 
 export default function App() {
   const { data: session, isLoading } = trpc.auth.me.useQuery();
 
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center" style={{ background: "#01738d" }}>
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
-      </div>
-    );
-  }
+  if (isLoading) return (
+    <div className="flex h-screen items-center justify-center" style={{ background: "#01738d" }}>
+      <Loader2 className="h-8 w-8 animate-spin text-white" />
+    </div>
+  );
 
-  if (!session) {
-    return (
-      <Switch>
-        <Route path="/login"><Login /></Route>
-        <Route><Login /></Route>
-      </Switch>
-    );
-  }
+  if (!session) return (
+    <Switch>
+      <Route path="/login"><Login /></Route>
+      <Route><Login /></Route>
+    </Switch>
+  );
 
   return (
     <div className="min-h-screen" style={{ background: "#f4f4f4" }}>
@@ -41,6 +38,9 @@ export default function App() {
             {(params) => <Resultado id={Number(params.id)} />}
           </Route>
           <Route path="/historico"><Historico /></Route>
+          <Route path="/admin/questoes">
+            {session.role === "admin" ? <AdminQuestoes /> : <Redirect to="/" />}
+          </Route>
           <Route><Redirect to="/" /></Route>
         </Switch>
       </main>
