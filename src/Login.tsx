@@ -162,7 +162,7 @@ export default function Login() {
           <p className="text-center text-sm" style={{ color: "#64748B" }}>
             {mode === "login" ? (
               <>
-                Não tens conta?{" "}
+                Possui conta?{" "}
                 <button
                   onClick={() => setMode("register")}
                   className="font-bold underline underline-offset-2"
@@ -173,7 +173,7 @@ export default function Login() {
               </>
             ) : (
               <>
-                Já tens conta?{" "}
+                Possui conta?{" "}
                 <button
                   onClick={() => setMode("login")}
                   className="font-bold underline underline-offset-2"
