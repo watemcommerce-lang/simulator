@@ -122,11 +122,14 @@ export default function AdminQuestoes() {
   }
 
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const DELETE_PASSWORD = "ExcluirWaldo16@";
 
   const deleteAllMutation = trpc.questions.deleteAll.useMutation({
     onSuccess: () => {
       toast.success("Todas as questões foram excluídas.");
       setConfirmDelete(false);
+      setDeletePassword("");
       utils.questions.list.invalidate();
     },
     onError: (e) => toast.error(e.message),
@@ -165,14 +168,14 @@ export default function AdminQuestoes() {
 
       {/* Zona de perigo */}
       <div className="rounded-xl p-4" style={{ border: "1.5px solid #FFCDD2", background: "#FFF5F5" }}>
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div>
-            <p className="text-sm font-bold" style={{ color: "#C62828" }}>Zona de perigo</p>
-            <p className="text-xs mt-0.5" style={{ color: "#E57373" }}>
-              Excluir todas as questões é irreversível. Use para auditar o banco ano a ano.
-            </p>
-          </div>
-          {!confirmDelete ? (
+        {!confirmDelete ? (
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <p className="text-sm font-bold" style={{ color: "#C62828" }}>Zona de perigo</p>
+              <p className="text-xs mt-0.5" style={{ color: "#E57373" }}>
+                Excluir todas as questões é irreversível. Use para auditar o banco ano a ano.
+              </p>
+            </div>
             <button
               onClick={() => setConfirmDelete(true)}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold"
@@ -181,32 +184,56 @@ export default function AdminQuestoes() {
               <Trash2 className="h-4 w-4" />
               Excluir todas as questões
             </button>
-          ) : (
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm font-bold" style={{ color: "#C62828" }}>
+              Confirme a senha para excluir todas as questões permanentemente.
+            </p>
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-sm font-bold" style={{ color: "#C62828" }}>
-                Tem certeza? Esta ação não pode ser desfeita.
-              </p>
+              <input
+                type="password"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                placeholder="Digite a senha de confirmação"
+                className="flex-1 px-3 py-2 rounded-lg text-sm outline-none"
+                style={{ border: "1.5px solid #EF9A9A", background: "#fff", color: "#1A1A2E", minWidth: 220 }}
+                onFocus={(e) => (e.target.style.borderColor = "#C62828")}
+                onBlur={(e) => (e.target.style.borderColor = "#EF9A9A")}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && deletePassword === DELETE_PASSWORD) {
+                    deleteAllMutation.mutate();
+                  }
+                }}
+              />
               <button
-                onClick={() => deleteAllMutation.mutate()}
-                disabled={deleteAllMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white"
+                onClick={() => {
+                  if (deletePassword !== DELETE_PASSWORD) {
+                    toast.error("Senha incorreta.");
+                    setDeletePassword("");
+                    return;
+                  }
+                  deleteAllMutation.mutate();
+                }}
+                disabled={deleteAllMutation.isPending || !deletePassword}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white disabled:opacity-50"
                 style={{ background: "#C62828" }}
               >
                 {deleteAllMutation.isPending
                   ? <Loader2 className="h-4 w-4 animate-spin" />
                   : <Trash2 className="h-4 w-4" />}
-                Sim, excluir tudo
+                Confirmar exclusão
               </button>
               <button
-                onClick={() => setConfirmDelete(false)}
+                onClick={() => { setConfirmDelete(false); setDeletePassword(""); }}
                 className="px-4 py-2 rounded-xl text-sm font-bold"
                 style={{ background: "#F1F5F9", color: "#64748B" }}
               >
                 Cancelar
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Formulário */}
