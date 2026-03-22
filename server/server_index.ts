@@ -7,11 +7,13 @@ import { appRouter } from "./router";
 import { authMiddleware } from "./auth";
 import { db } from "./db";
 import { questions } from "./schema";
-import { eq } from "drizzle-orm";
 
 const app = express();
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 const isProd = process.env.NODE_ENV === "production";
+
+// CRÍTICO: diz ao Express para confiar no proxy do Railway
+app.set("trust proxy", 1);
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
@@ -19,9 +21,8 @@ app.use(cookieParser());
 app.use(authMiddleware);
 
 // =============================================================================
-// Rota de importação de questões — aceder pelo browser
+// Rota de importação de questões
 // URL: /admin/import?secret=IMPORTAR2024&year=2023
-// Após importar, pode remover este bloco
 // =============================================================================
 
 app.get("/admin/import", async (req, res) => {
@@ -34,24 +35,14 @@ app.get("/admin/import", async (req, res) => {
 
   const year = Number(req.query.year ?? 2023);
 
-  res.writeHead(200, {
-    "Content-Type": "text/plain; charset=utf-8",
-    "X-Content-Type-Options": "nosniff",
-  });
+  res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
 
-  const log = (msg: string) => {
-    console.log(msg);
-    res.write(msg + "\n");
-  };
+  const log = (msg: string) => { console.log(msg); res.write(msg + "\n"); };
 
   log(`Iniciando importação — ENEM ${year}...`);
-  log("Buscando questões na API enem.dev...");
 
   try {
-    const BASE_URL = "https://api.enem.dev/v1";
     const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-    // Busca todas as questões de matemática do ano com paginação
     let offset = 0;
     const limit = 50;
     let hasMore = true;
@@ -59,36 +50,24 @@ app.get("/admin/import", async (req, res) => {
 
     while (hasMore) {
       await delay(1200);
-      const url = `${BASE_URL}/exams/${year}/questions?limit=${limit}&offset=${offset}`;
+      const url = `https://api.enem.dev/v1/exams/${year}/questions?limit=${limit}&offset=${offset}`;
       const resp = await fetch(url);
-
-      if (!resp.ok) {
-        log(`Erro HTTP ${resp.status} ao buscar questões.`);
-        break;
-      }
-
+      if (!resp.ok) { log(`Erro HTTP ${resp.status}`); break; }
       const data = await resp.json();
       const mathQs = data.questions.filter((q: any) => q.discipline === "matematica");
       allQuestions.push(...mathQs);
-      log(`  Página offset=${offset}: ${mathQs.length} questões de matemática encontradas`);
-
+      log(`  Página ${offset}: ${mathQs.length} questões de matemática`);
       hasMore = data.metadata.hasMore;
       offset += limit;
     }
 
-    log(`\nTotal encontrado: ${allQuestions.length} questões de matemática`);
+    log(`\nTotal: ${allQuestions.length} questões`);
 
-    if (allQuestions.length === 0) {
-      log("Nenhuma questão encontrada. Verifique se o ano está correcto.");
-      return res.end();
-    }
-
-    // Estima parâmetros TRI pela posição na prova
     function estimateTRI(index: number) {
-      const ratio = index / 45;
-      if (ratio < 0.25) return { a: 0.8, b: -1.5, c: 0.2, nivel: "Baixa" as const };
-      if (ratio < 0.50) return { a: 1.0, b: -0.5, c: 0.2, nivel: "Média" as const };
-      if (ratio < 0.75) return { a: 1.2, b: 0.5,  c: 0.2, nivel: "Alta" as const };
+      const r = index / 45;
+      if (r < 0.25) return { a: 0.8, b: -1.5, c: 0.2, nivel: "Baixa" as const };
+      if (r < 0.50) return { a: 1.0, b: -0.5, c: 0.2, nivel: "Média" as const };
+      if (r < 0.75) return { a: 1.2, b: 0.5,  c: 0.2, nivel: "Alta" as const };
       return               { a: 1.5, b: 1.5,  c: 0.2, nivel: "Muito Alta" as const };
     }
 
@@ -96,31 +75,13 @@ app.get("/admin/import", async (req, res) => {
     let ignoradas = 0;
 
     for (const q of allQuestions) {
-      // Verifica duplicata
-      const existing = await db
-        .select({ id: questions.id })
-        .from(questions)
-        .where(eq(questions.ano, q.year))
-        .limit(100);
-
-      // Verifica se esta questão específica já existe pelo enunciado
-      const enunciado = (q.context ?? `Questão ${q.index} — ENEM ${q.year}`).trim();
-      const alreadyExists = existing.some(() => false); // simplificado — insere sempre se não há duplicata por ano+índice
-
-      // Monta alternativas
       const alternativas: Record<string, string> = {};
       for (const alt of (q.alternatives ?? [])) {
-        alternativas[alt.letter] = alt.text || (alt.file ? `[Imagem: ${alt.file}]` : "");
+        alternativas[alt.letter] = alt.text || (alt.file ? `[Imagem]` : "");
       }
-
-      if (Object.keys(alternativas).length < 2) {
-        log(`  ⚠ Questão ${q.index}: alternativas incompletas, ignorada.`);
-        ignoradas++;
-        continue;
-      }
+      if (Object.keys(alternativas).length < 2) { ignoradas++; continue; }
 
       const tri = estimateTRI(q.index);
-
       try {
         await db.insert(questions).values({
           fonte: "ENEM",
@@ -131,7 +92,7 @@ app.get("/admin/import", async (req, res) => {
           param_a: tri.a,
           param_b: tri.b,
           param_c: tri.c,
-          enunciado,
+          enunciado: (q.context ?? `Questão ${q.index} — ENEM ${q.year}`).trim(),
           url_imagem: q.files?.[0] ?? null,
           alternativas,
           gabarito: (q.correctAlternative ?? "A").toUpperCase(),
@@ -139,19 +100,15 @@ app.get("/admin/import", async (req, res) => {
           active: true,
         });
         inseridas++;
-        log(`  ✓ Questão ${q.index} inserida`);
-      } catch (err: any) {
-        log(`  ✗ Questão ${q.index} erro: ${err.message}`);
+        if (inseridas % 5 === 0) log(`  ${inseridas} inseridas...`);
+      } catch {
         ignoradas++;
       }
     }
 
-    log(`\n=============================`);
-    log(`Concluído: ${inseridas} inseridas, ${ignoradas} ignoradas.`);
-    log(`Pode fechar esta janela.`);
-
+    log(`\nConcluído: ${inseridas} inseridas, ${ignoradas} ignoradas.`);
   } catch (err: any) {
-    log(`\nErro fatal: ${err.message}`);
+    log(`Erro: ${err.message}`);
   }
 
   res.end();
