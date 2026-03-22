@@ -5,6 +5,7 @@ import Dashboard from "@/Dashboard";
 import Simulador from "@/Simulador";
 import Resultado from "@/Resultado";
 import Historico from "@/Historico";
+import Questoes from "@/Questoes";
 import Login from "@/Login";
 import { Loader2 } from "lucide-react";
 
@@ -13,8 +14,7 @@ export default function App() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center"
-        style={{ background: "linear-gradient(135deg, var(--purple-dark), var(--teal))" }}>
+      <div className="flex h-screen items-center justify-center" style={{ background: "#01738d" }}>
         <Loader2 className="h-8 w-8 animate-spin text-white" />
       </div>
     );
@@ -30,12 +30,13 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--background)" }}>
+    <div className="min-h-screen" style={{ background: "#f4f4f4" }}>
       <Navbar />
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <Switch>
           <Route path="/"><Dashboard /></Route>
           <Route path="/simulado"><Simulador /></Route>
+          <Route path="/questoes"><Questoes /></Route>
           <Route path="/resultado/:id">
             {(params) => <Resultado id={Number(params.id)} />}
           </Route>
