@@ -1,6 +1,7 @@
 import { Switch, Route, Redirect } from "wouter";
 import { trpc } from "@/lib/trpc";
 import Navbar from "@/Navbar";
+import Footer from "@/Footer";
 import Dashboard from "@/Dashboard";
 import Simulador from "@/Simulador";
 import Resultado from "@/Resultado";
@@ -27,9 +28,9 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen" style={{ background: "#f4f4f4" }}>
+    <div className="min-h-screen flex flex-col" style={{ background: "#f4f4f4" }}>
       <Navbar />
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
+      <main className="flex-1 container mx-auto px-4 py-8 max-w-4xl">
         <Switch>
           <Route path="/"><Dashboard /></Route>
           <Route path="/simulado"><Simulador /></Route>
@@ -44,6 +45,7 @@ export default function App() {
           <Route><Redirect to="/" /></Route>
         </Switch>
       </main>
+      <Footer />
     </div>
   );
 }
