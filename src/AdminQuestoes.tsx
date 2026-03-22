@@ -121,6 +121,17 @@ export default function AdminQuestoes() {
     }
   }
 
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const deleteAllMutation = trpc.questions.deleteAll.useMutation({
+    onSuccess: () => {
+      toast.success("Todas as questões foram excluídas.");
+      setConfirmDelete(false);
+      utils.questions.list.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   // Filtra por tag no frontend
@@ -150,6 +161,52 @@ export default function AdminQuestoes() {
           style={{ background: "rgba(255,255,255,0.2)", color: "#fff", border: "1px solid rgba(255,255,255,0.3)" }}>
           <Plus className="h-4 w-4" /> Nova questão
         </button>
+      </div>
+
+      {/* Zona de perigo */}
+      <div className="rounded-xl p-4" style={{ border: "1.5px solid #FFCDD2", background: "#FFF5F5" }}>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <p className="text-sm font-bold" style={{ color: "#C62828" }}>Zona de perigo</p>
+            <p className="text-xs mt-0.5" style={{ color: "#E57373" }}>
+              Excluir todas as questões é irreversível. Use para auditar o banco ano a ano.
+            </p>
+          </div>
+          {!confirmDelete ? (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold"
+              style={{ background: "#FFCDD2", color: "#C62828", border: "1.5px solid #EF9A9A" }}
+            >
+              <Trash2 className="h-4 w-4" />
+              Excluir todas as questões
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-sm font-bold" style={{ color: "#C62828" }}>
+                Tem certeza? Esta ação não pode ser desfeita.
+              </p>
+              <button
+                onClick={() => deleteAllMutation.mutate()}
+                disabled={deleteAllMutation.isPending}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white"
+                style={{ background: "#C62828" }}
+              >
+                {deleteAllMutation.isPending
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <Trash2 className="h-4 w-4" />}
+                Sim, excluir tudo
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="px-4 py-2 rounded-xl text-sm font-bold"
+                style={{ background: "#F1F5F9", color: "#64748B" }}
+              >
+                Cancelar
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Formulário */}
