@@ -1,5 +1,3 @@
-// Adicionar ao schema.ts existente — tabela de utilizadores
-
 import {
   mysqlTable,
   int,
@@ -25,6 +23,8 @@ export const users = mysqlTable("users", {
   passwordHash: varchar("password_hash", { length: 255 }).notNull(),
   role: mysqlEnum("role", ["student", "admin"]).notNull().default("student"),
   active: boolean("active").notNull().default(true),
+  // Controlo de assinatura — null = sem expiração (admin/free)
+  subscriptionExpiresAt: timestamp("subscription_expires_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -48,7 +48,7 @@ export const questions = mysqlTable(
     param_c: float("param_c").notNull().default(0.2),
     enunciado: text("enunciado").notNull(),
     url_imagem: varchar("url_imagem", { length: 512 }),
-    alternativas: json("alternativas").$type<Record<string, string>>().notNull(),
+    alternativas: json("alternativas").$type<Record<string, any>>().notNull(),
     gabarito: varchar("gabarito", { length: 1 }).notNull(),
     comentario_resolucao: text("comentario_resolucao"),
     active: boolean("active").notNull().default(true),
@@ -57,7 +57,6 @@ export const questions = mysqlTable(
   },
   (t) => ({
     idxConteudo: index("idx_conteudo_principal").on(t.conteudo_principal),
-    idxDificuldade: index("idx_nivel_dificuldade").on(t.nivel_dificuldade),
     idxActive: index("idx_active").on(t.active),
   })
 );
