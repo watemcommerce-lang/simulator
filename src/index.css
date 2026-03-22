@@ -1,0 +1,124 @@
+@import "katex/dist/katex.min.css";
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.75rem;
+
+  --purple:        #6B2FA0;
+  --purple-dark:   #521F80;
+  --purple-light:  #8B4FC0;
+  --purple-soft:   #F3EAF9;
+
+  --teal:          #00BFA5;
+  --teal-dark:     #00897B;
+  --teal-light:    #4DD0C4;
+  --teal-soft:     #E0F7F4;
+
+  --background:         #FFFFFF;
+  --foreground:         #1A1A2E;
+  --card:               #FFFFFF;
+  --card-foreground:    #1A1A2E;
+  --muted:              #F5F3F8;
+  --muted-foreground:   #6B6880;
+  --border:             #E2D9EE;
+  --primary:            #6B2FA0;
+  --primary-foreground: #FFFFFF;
+  --secondary:          #E0F7F4;
+  --secondary-foreground: #00897B;
+  --accent:             #F3EAF9;
+  --accent-foreground:  #521F80;
+  --destructive:        #E53935;
+  --input:              #E2D9EE;
+  --ring:               #8B4FC0;
+}
+
+.dark {
+  --background:         #120D1E;
+  --foreground:         #EDE8F5;
+  --card:               #1E1530;
+  --card-foreground:    #EDE8F5;
+  --muted:              #2A1F40;
+  --muted-foreground:   #9B8FB5;
+  --border:             #3A2A55;
+  --primary:            #00BFA5;
+  --primary-foreground: #120D1E;
+  --secondary:          #1A2E2B;
+  --secondary-foreground: #4DD0C4;
+  --accent:             #2A1F40;
+  --accent-foreground:  #D4B8F0;
+  --input:              #3A2A55;
+  --ring:               #00BFA5;
+}
+
+*, *::before, *::after { box-sizing: border-box; border-color: var(--border); }
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.55rem 1.25rem; border-radius: var(--radius);
+  background-color: var(--purple); color: #fff;
+  font-weight: 600; font-size: 0.9rem; border: none; cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn-primary:hover { opacity: 0.85; }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-outline {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.55rem 1.25rem; border-radius: var(--radius);
+  background: transparent; color: var(--purple);
+  font-weight: 600; font-size: 0.9rem;
+  border: 2px solid var(--purple); cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-outline:hover { background-color: var(--purple-soft); }
+
+.card {
+  background-color: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+.timer {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.35rem 0.85rem; border-radius: 99px;
+  font-family: monospace; font-weight: 700; font-size: 0.95rem;
+  transition: background 0.3s, color 0.3s;
+}
+.timer.ok   { background: var(--teal-soft);  color: var(--teal-dark); }
+.timer.warn { background: #FFEBEE; color: #C62828; }
+
+.progress-bar { height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; }
+.progress-bar-fill {
+  height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, var(--teal), var(--purple-light));
+  transition: width 0.4s ease;
+}
+
+.alternative {
+  display: flex; align-items: flex-start; gap: 0.75rem;
+  padding: 0.75rem 1rem; border-radius: var(--radius);
+  border: 2px solid var(--border); background: var(--card);
+  cursor: pointer; text-align: left; width: 100%;
+  transition: border-color 0.15s, background 0.15s;
+}
+.alternative:hover:not(:disabled) { border-color: var(--purple-light); background: var(--purple-soft); }
+.alternative.selected { border-color: var(--purple); background: var(--purple-soft); }
+.alternative.correct  { border-color: var(--teal-dark); background: var(--teal-soft); }
+.alternative.wrong    { border-color: #E53935; background: #FFEBEE; }
+
+.alt-badge {
+  flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid currentColor; display: flex; align-items: center;
+  justify-content: center; font-size: 0.78rem; font-weight: 700; margin-top: 1px;
+}
