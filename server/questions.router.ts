@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { eq, and, sql, asc, desc } from "drizzle-orm";
+import { eq, and, sql, asc, desc, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, adminProcedure } from "./trpc";
-import { questions } from "./schema";
+import { questions, simulationAnswers } from "./schema";
 import type { NewQuestion } from "./schema";
 
 const NivelDificuldadeEnum = z.enum(["Muito Baixa", "Baixa", "Média", "Alta", "Muito Alta"]);
@@ -25,7 +25,6 @@ const QuestionBaseSchema = z.object({
 
 export const questionsRouter = createTRPCRouter({
 
-  // Listagem para alunos autenticados
   list: protectedProcedure
     .input(z.object({
       page: z.number().int().min(1).default(1),
@@ -63,7 +62,6 @@ export const questionsRouter = createTRPCRouter({
       };
     }),
 
-  // Admin: questão completa por ID
   getByIdAdmin: adminProcedure
     .input(z.object({ id: z.number().int().positive() }))
     .query(async ({ ctx, input }) => {
@@ -72,7 +70,6 @@ export const questionsRouter = createTRPCRouter({
       return q;
     }),
 
-  // Admin: cria questão
   create: adminProcedure
     .input(QuestionBaseSchema)
     .mutation(async ({ ctx, input }) => {
@@ -85,7 +82,6 @@ export const questionsRouter = createTRPCRouter({
       return { id: Number(result.insertId), success: true };
     }),
 
-  // Admin: actualiza questão
   update: adminProcedure
     .input(QuestionBaseSchema.partial().extend({ id: z.number().int().positive() }))
     .mutation(async ({ ctx, input }) => {
@@ -97,7 +93,6 @@ export const questionsRouter = createTRPCRouter({
       return { success: true };
     }),
 
-  // Admin: activa/desactiva
   toggleActive: adminProcedure
     .input(z.object({ id: z.number().int().positive(), active: z.boolean() }))
     .mutation(async ({ ctx, input }) => {
@@ -105,19 +100,20 @@ export const questionsRouter = createTRPCRouter({
       return { success: true };
     }),
 
-  // Admin: elimina uma questão
+  // Elimina UMA questão — apaga respostas primeiro para contornar FK restrict
   delete: adminProcedure
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ ctx, input }) => {
+      await ctx.db.delete(simulationAnswers).where(eq(simulationAnswers.questionId, input.id));
       await ctx.db.delete(questions).where(eq(questions.id, input.id));
       return { success: true };
     }),
 
-  // Admin: elimina TODAS as questões do banco
- delete: adminProcedure
-    .input(z.object({ id: z.number().int().positive() }))
-    .mutation(async ({ ctx, input }) => {
-      await ctx.db.delete(questions).where(eq(questions.id, input.id));
+  // Elimina TODAS as questões — apaga respostas primeiro
+  deleteAll: adminProcedure
+    .mutation(async ({ ctx }) => {
+      await ctx.db.delete(simulationAnswers);
+      await ctx.db.delete(questions);
       return { success: true };
     }),
 });
