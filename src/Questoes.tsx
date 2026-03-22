@@ -4,16 +4,24 @@ import { LatexRenderer } from "@/LatexRenderer";
 import { ChevronDown, ChevronUp, Search, Loader2, Tag } from "lucide-react";
 
 const TAGS_CONTEUDO = [
-  "Geometria Plana",
-  "Geometria Espacial",
-  "Geometria Analítica",
+  "Razão, Proporção e Regra de Três",
   "Porcentagem",
-  "Razão e Proporção",
-  "Equações",
-  "Funções",
+  "Escala",
+  "Operações Básicas",
+  "Conversão de Unidades",
+  "Geometria Espacial",
+  "Geometria Plana",
+  "Visualização Espacial/Projeção Ortogonal",
   "Trigonometria",
-  "Álgebra",
-  "Números",
+  "Leitura de Gráficos e Tabelas",
+  "Medidas de Tendência Central",
+  "Probabilidade",
+  "Funções de 1º e 2º Grau",
+  "Equações e Inequações",
+  "Sequências",
+  "Matemática Financeira",
+  "Análise Combinatória",
+  "Logaritmos",
 ];
 
 export default function Questoes() {
