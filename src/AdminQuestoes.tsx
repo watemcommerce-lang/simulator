@@ -2,12 +2,22 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { LatexRenderer } from "@/LatexRenderer";
 import { toast } from "sonner";
-import {
-  Plus, Pencil, Trash2, Eye, EyeOff,
-  ChevronDown, ChevronUp, Loader2, Search, X, Save
-} from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, ChevronDown, ChevronUp, Loader2, Search, X, Save, Tag } from "lucide-react";
 
 const NIVEIS = ["Muito Baixa", "Baixa", "Média", "Alta", "Muito Alta"] as const;
+
+const TAGS_CONTEUDO = [
+  "Geometria Plana",
+  "Geometria Espacial",
+  "Geometria Analítica",
+  "Porcentagem",
+  "Razão e Proporção",
+  "Equações",
+  "Funções",
+  "Trigonometria",
+  "Álgebra",
+  "Números",
+];
 
 const emptyForm = {
   fonte: "ENEM",
@@ -30,6 +40,7 @@ type Form = typeof emptyForm;
 export default function AdminQuestoes() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [filterTag, setFilterTag] = useState("Todas");
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState<Form>(emptyForm);
@@ -85,18 +96,24 @@ export default function AdminQuestoes() {
       alternativas: q.alternativas,
       gabarito: q.gabarito,
       comentario_resolucao: q.comentario_resolucao ?? "",
-      tags: q.tags ?? [],
+      tags: Array.isArray(q.tags) ? q.tags : [],
     });
     setEditId(q.id);
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function toggleTag(tag: string) {
+    setForm((f) => ({
+      ...f,
+      tags: f.tags.includes(tag) ? f.tags.filter((t) => t !== tag) : [...f.tags, tag],
+    }));
+  }
+
   function handleSubmit() {
-    const payload = {
-      ...form,
-      url_imagem: form.url_imagem || null,
-    };
+    if (!form.conteudo_principal.trim()) { toast.error("Preencha o conteúdo principal."); return; }
+    if (!form.enunciado.trim()) { toast.error("Preencha o enunciado."); return; }
+    const payload = { ...form, url_imagem: form.url_imagem || null };
     if (editId) {
       updateMutation.mutate({ id: editId, ...payload });
     } else {
@@ -106,12 +123,19 @@ export default function AdminQuestoes() {
 
   const isPending = createMutation.isPending || updateMutation.isPending;
 
+  // Filtra por tag no frontend
+  const allQuestions = data?.questions ?? [];
+  const filtered = filterTag === "Todas"
+    ? allQuestions
+    : allQuestions.filter((q) => Array.isArray(q.tags) && q.tags.includes(filterTag));
+
   const inputClass = "w-full px-3 py-2 rounded-lg text-sm outline-none";
   const inputStyle = { border: "1.5px solid #E2D9EE", background: "#fff", color: "#1A1A2E" };
-  const labelStyle = { color: "#1A1A2E", fontSize: "0.8rem", fontWeight: 600, display: "block", marginBottom: 4 };
+  const labelStyle: React.CSSProperties = { color: "#1A1A2E", fontSize: "0.8rem", fontWeight: 600, display: "block", marginBottom: 4 };
 
   return (
     <div className="space-y-6 py-2">
+
       {/* Cabeçalho */}
       <div className="rounded-2xl px-6 py-5 text-white flex items-center justify-between gap-4"
         style={{ background: "linear-gradient(135deg, #521F80, #01738d)" }}>
@@ -121,36 +145,39 @@ export default function AdminQuestoes() {
             {data?.pagination.total ?? 0} questões no banco
           </p>
         </div>
-        <button
-          onClick={() => { resetForm(); setShowForm(true); }}
+        <button onClick={() => { resetForm(); setShowForm(true); }}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm"
-          style={{ background: "rgba(255,255,255,0.2)", color: "#fff", border: "1px solid rgba(255,255,255,0.3)" }}
-        >
+          style={{ background: "rgba(255,255,255,0.2)", color: "#fff", border: "1px solid rgba(255,255,255,0.3)" }}>
           <Plus className="h-4 w-4" /> Nova questão
         </button>
       </div>
 
       {/* Formulário */}
       {showForm && (
-        <div className="rounded-2xl p-6 space-y-4" style={{ background: "#fff", border: "1.5px solid #E2D9EE" }}>
+        <div className="rounded-2xl p-6 space-y-5" style={{ background: "#fff", border: "1.5px solid #E2D9EE" }}>
           <div className="flex items-center justify-between">
-            <h2 className="font-bold" style={{ color: "#1A1A2E" }}>
-              {editId ? "Editar questão" : "Nova questão"}
+            <h2 className="font-bold text-lg" style={{ color: "#1A1A2E" }}>
+              {editId ? `Editar questão #${editId}` : "Nova questão"}
             </h2>
             <button onClick={resetForm}><X className="h-5 w-5" style={{ color: "#94A3B8" }} /></button>
           </div>
 
+          {/* Metadados */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label style={labelStyle}>Conteúdo principal</label>
               <input className={inputClass} style={inputStyle} value={form.conteudo_principal}
                 onChange={(e) => setForm({ ...form, conteudo_principal: e.target.value })}
-                placeholder="Ex: Logaritmos" />
+                placeholder="Ex: Logaritmos"
+                onFocus={(e) => (e.target.style.borderColor = "#01738d")}
+                onBlur={(e) => (e.target.style.borderColor = "#E2D9EE")} />
             </div>
             <div>
               <label style={labelStyle}>Ano</label>
               <input className={inputClass} style={inputStyle} type="number" value={form.ano}
-                onChange={(e) => setForm({ ...form, ano: Number(e.target.value) })} />
+                onChange={(e) => setForm({ ...form, ano: Number(e.target.value) })}
+                onFocus={(e) => (e.target.style.borderColor = "#01738d")}
+                onBlur={(e) => (e.target.style.borderColor = "#E2D9EE")} />
             </div>
             <div>
               <label style={labelStyle}>Dificuldade</label>
@@ -161,35 +188,77 @@ export default function AdminQuestoes() {
             </div>
           </div>
 
+          {/* Tags de conteúdo */}
+          <div>
+            <label style={{ ...labelStyle, display: "flex", alignItems: "center", gap: 6 }}>
+              <Tag className="h-3.5 w-3.5" style={{ color: "#01738d" }} />
+              Tags de conteúdo
+              <span style={{ fontWeight: 400, color: "#94A3B8", fontSize: "0.75rem" }}>
+                — clique para selecionar (pode escolher várias)
+              </span>
+            </label>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {TAGS_CONTEUDO.map((tag) => {
+                const selected = form.tags.includes(tag);
+                return (
+                  <button key={tag} type="button" onClick={() => toggleTag(tag)}
+                    className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                    style={selected
+                      ? { background: "#01738d", color: "#fff", border: "1.5px solid #01738d" }
+                      : { background: "#fff", color: "#01738d", border: "1.5px solid #01738d" }}>
+                    {selected ? "✓ " : ""}{tag}
+                  </button>
+                );
+              })}
+            </div>
+            {form.tags.length > 0 && (
+              <p className="text-xs mt-2" style={{ color: "#64748B" }}>
+                Selecionadas: {form.tags.join(", ")}
+              </p>
+            )}
+          </div>
+
+          {/* Enunciado */}
           <div>
             <label style={labelStyle}>Enunciado (suporta LaTeX com $...$)</label>
             <textarea className={inputClass} style={{ ...inputStyle, resize: "vertical" }} rows={5}
               value={form.enunciado}
               onChange={(e) => setForm({ ...form, enunciado: e.target.value })}
-              placeholder="Texto do enunciado..." />
+              placeholder="Texto do enunciado..."
+              onFocus={(e) => (e.target.style.borderColor = "#01738d")}
+              onBlur={(e) => (e.target.style.borderColor = "#E2D9EE")} />
           </div>
 
           <div>
-            <label style={labelStyle}>URL da imagem (opcional)</label>
+            <label style={labelStyle}>URL da imagem do enunciado (opcional)</label>
             <input className={inputClass} style={inputStyle} value={form.url_imagem}
               onChange={(e) => setForm({ ...form, url_imagem: e.target.value })}
-              placeholder="https://..." />
+              placeholder="https://..."
+              onFocus={(e) => (e.target.style.borderColor = "#01738d")}
+              onBlur={(e) => (e.target.style.borderColor = "#E2D9EE")} />
           </div>
 
+          {/* Alternativas */}
           <div>
-            <label style={labelStyle}>Alternativas</label>
+            <label style={labelStyle}>Alternativas (suportam LaTeX)</label>
             <div className="space-y-2">
               {["A", "B", "C", "D", "E"].map((letra) => (
                 <div key={letra} className="flex items-center gap-2">
-                  <span className="font-bold w-5 text-sm flex-shrink-0" style={{ color: "#01738d" }}>{letra}</span>
-                  <input className={inputClass} style={inputStyle} value={form.alternativas[letra] ?? ""}
+                  <span className="font-black w-5 text-sm flex-shrink-0" style={{ color: "#01738d" }}>{letra}</span>
+                  <input className={inputClass} style={inputStyle}
+                    value={typeof form.alternativas[letra] === "object"
+                      ? (form.alternativas[letra] as any).text ?? ""
+                      : form.alternativas[letra] ?? ""}
                     onChange={(e) => setForm({ ...form, alternativas: { ...form.alternativas, [letra]: e.target.value } })}
-                    placeholder={`Alternativa ${letra}`} />
+                    placeholder={`Alternativa ${letra} — use $formula$ para LaTeX`}
+                    onFocus={(e) => (e.target.style.borderColor = "#01738d")}
+                    onBlur={(e) => (e.target.style.borderColor = "#E2D9EE")} />
                 </div>
               ))}
             </div>
           </div>
 
+          {/* Gabarito + TRI */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label style={labelStyle}>Gabarito</label>
@@ -199,26 +268,34 @@ export default function AdminQuestoes() {
               </select>
             </div>
             <div>
-              <label style={labelStyle}>Parâmetros TRI (a / b / c)</label>
+              <label style={labelStyle}>Parâmetros TRI — discriminação (a) / dificuldade (b) / chute (c)</label>
               <div className="flex gap-2">
-                {(["param_a", "param_b", "param_c"] as const).map((p) => (
-                  <input key={p} type="number" step="0.1" className={inputClass} style={inputStyle}
-                    value={form[p]}
-                    onChange={(e) => setForm({ ...form, [p]: Number(e.target.value) })} />
+                {(["param_a", "param_b", "param_c"] as const).map((p, i) => (
+                  <div key={p} className="flex-1">
+                    <input type="number" step="0.1" className={inputClass} style={inputStyle}
+                      value={form[p]}
+                      onChange={(e) => setForm({ ...form, [p]: Number(e.target.value) })}
+                      placeholder={["a", "b", "c"][i]}
+                      onFocus={(e) => (e.target.style.borderColor = "#01738d")}
+                      onBlur={(e) => (e.target.style.borderColor = "#E2D9EE")} />
+                  </div>
                 ))}
               </div>
             </div>
           </div>
 
+          {/* Resolução */}
           <div>
-            <label style={labelStyle}>Resolução comentada (opcional)</label>
+            <label style={labelStyle}>Resolução comentada (opcional — suporta LaTeX)</label>
             <textarea className={inputClass} style={{ ...inputStyle, resize: "vertical" }} rows={3}
               value={form.comentario_resolucao}
               onChange={(e) => setForm({ ...form, comentario_resolucao: e.target.value })}
-              placeholder="Passo a passo da resolução..." />
+              placeholder="Passo a passo da resolução..."
+              onFocus={(e) => (e.target.style.borderColor = "#01738d")}
+              onBlur={(e) => (e.target.style.borderColor = "#E2D9EE")} />
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 pt-1">
             <button onClick={handleSubmit} disabled={isPending}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white"
               style={{ background: "#01738d" }}>
@@ -233,34 +310,77 @@ export default function AdminQuestoes() {
         </div>
       )}
 
-      {/* Busca */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "#94A3B8" }} />
-        <input type="text" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          placeholder="Buscar por conteúdo..."
-          className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm outline-none"
-          style={{ border: "1.5px solid #E2D9EE", background: "#fff", color: "#1A1A2E" }} />
+      {/* Busca + filtro por tag */}
+      <div className="space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "#94A3B8" }} />
+          <input type="text" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            placeholder="Buscar por conteúdo..."
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm outline-none"
+            style={{ border: "1.5px solid #E2D9EE", background: "#fff", color: "#1A1A2E" }}
+            onFocus={(e) => (e.target.style.borderColor = "#01738d")}
+            onBlur={(e) => (e.target.style.borderColor = "#E2D9EE")} />
+        </div>
+
+        {/* Filtro por tag */}
+        <div>
+          <p className="text-xs font-semibold mb-2 flex items-center gap-1.5" style={{ color: "#64748B" }}>
+            <Tag className="h-3.5 w-3.5" /> Filtrar por tag:
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {["Todas", ...TAGS_CONTEUDO].map((tag) => (
+              <button key={tag} onClick={() => setFilterTag(tag)}
+                className="px-3 py-1 rounded-full text-xs font-semibold transition-colors"
+                style={filterTag === tag
+                  ? { background: "#01738d", color: "#fff" }
+                  : { background: "#E0F7F4", color: "#01738d" }}>
+                {tag}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
+
+      {/* Contador */}
+      <p className="text-sm" style={{ color: "#64748B" }}>
+        {filtered.length} questão(ões)
+        {filterTag !== "Todas" ? ` com tag "${filterTag}"` : ""}
+      </p>
 
       {/* Lista */}
       {isLoading ? (
-        <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin" style={{ color: "#01738d" }} /></div>
+        <div className="flex justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin" style={{ color: "#01738d" }} />
+        </div>
       ) : (
         <div className="space-y-2">
-          {data?.questions.map((q) => {
+          {filtered.map((q) => {
             const isOpen = openId === q.id;
+            const qTags = Array.isArray(q.tags) ? q.tags.filter((t: string) => TAGS_CONTEUDO.includes(t)) : [];
+
             return (
               <div key={q.id} className="rounded-xl overflow-hidden"
                 style={{ border: "1.5px solid #E2D9EE", background: q.active ? "#fff" : "#F8FAFC", opacity: q.active ? 1 : 0.6 }}>
+
                 <div className="flex items-center gap-3 px-4 py-3">
-                  <button onClick={() => setOpenId(isOpen ? null : q.id)} className="flex-1 flex items-center gap-3 text-left">
-                    <span className="text-xs font-bold w-8 flex-shrink-0" style={{ color: "#94A3B8" }}>#{q.id}</span>
+                  <button onClick={() => setOpenId(isOpen ? null : q.id)} className="flex-1 flex items-start gap-3 text-left">
+                    <span className="text-xs font-bold w-8 flex-shrink-0 mt-0.5" style={{ color: "#94A3B8" }}>#{q.id}</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate" style={{ color: "#1A1A2E" }}>{q.conteudo_principal}</p>
+                      <p className="text-sm font-semibold" style={{ color: "#1A1A2E" }}>{q.conteudo_principal}</p>
                       <p className="text-xs" style={{ color: "#94A3B8" }}>ENEM {q.ano} · {q.nivel_dificuldade} · Gabarito: {q.gabarito}</p>
+                      {qTags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {qTags.map((tag: string) => (
+                            <span key={tag} className="text-xs px-2 py-0.5 rounded-full font-medium"
+                              style={{ background: "#E0F7F4", color: "#00897B" }}>
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    {isOpen ? <ChevronUp className="h-4 w-4 flex-shrink-0" style={{ color: "#94A3B8" }} />
-                      : <ChevronDown className="h-4 w-4 flex-shrink-0" style={{ color: "#94A3B8" }} />}
+                    {isOpen ? <ChevronUp className="h-4 w-4 flex-shrink-0 mt-1" style={{ color: "#94A3B8" }} />
+                      : <ChevronDown className="h-4 w-4 flex-shrink-0 mt-1" style={{ color: "#94A3B8" }} />}
                   </button>
 
                   {/* Acções */}
@@ -268,10 +388,14 @@ export default function AdminQuestoes() {
                     <button onClick={() => startEdit(q)} className="p-1.5 rounded-lg hover:bg-gray-100" title="Editar">
                       <Pencil className="h-3.5 w-3.5" style={{ color: "#01738d" }} />
                     </button>
-                    <button onClick={() => toggleMutation.mutate({ id: q.id, active: !q.active })} className="p-1.5 rounded-lg hover:bg-gray-100" title={q.active ? "Desativar" : "Ativar"}>
-                      {q.active ? <EyeOff className="h-3.5 w-3.5" style={{ color: "#F57F17" }} /> : <Eye className="h-3.5 w-3.5" style={{ color: "#00897B" }} />}
+                    <button onClick={() => toggleMutation.mutate({ id: q.id, active: !q.active })}
+                      className="p-1.5 rounded-lg hover:bg-gray-100" title={q.active ? "Desativar" : "Ativar"}>
+                      {q.active
+                        ? <EyeOff className="h-3.5 w-3.5" style={{ color: "#F57F17" }} />
+                        : <Eye className="h-3.5 w-3.5" style={{ color: "#00897B" }} />}
                     </button>
-                    <button onClick={() => { if (confirm("Excluir permanentemente?")) deleteMutation.mutate({ id: q.id }); }} className="p-1.5 rounded-lg hover:bg-gray-100" title="Excluir">
+                    <button onClick={() => { if (confirm("Excluir permanentemente?")) deleteMutation.mutate({ id: q.id }); }}
+                      className="p-1.5 rounded-lg hover:bg-gray-100" title="Excluir">
                       <Trash2 className="h-3.5 w-3.5" style={{ color: "#E53935" }} />
                     </button>
                   </div>
@@ -282,15 +406,24 @@ export default function AdminQuestoes() {
                     <div className="pt-3">
                       <LatexRenderer fontSize="sm">{q.enunciado}</LatexRenderer>
                     </div>
-                    {q.url_imagem && <img src={q.url_imagem} alt="" className="max-w-full rounded-lg" style={{ border: "1px solid #E2D9EE" }} />}
+                    {q.url_imagem && (
+                      <img src={q.url_imagem} alt="" className="max-w-full rounded-lg" style={{ border: "1px solid #E2D9EE" }} />
+                    )}
                     <div className="space-y-1">
-                      {Object.entries(q.alternativas as Record<string, string>).sort().map(([id, texto]) => (
-                        <div key={id} className="flex gap-2 px-3 py-1.5 rounded-lg text-sm"
-                          style={{ background: id === q.gabarito ? "#E0F7F4" : "#F8FAFC", border: id === q.gabarito ? "1px solid #00897B" : "none" }}>
-                          <span className="font-bold w-4 flex-shrink-0" style={{ color: id === q.gabarito ? "#00897B" : "#01738d" }}>{id}</span>
-                          <LatexRenderer inline>{texto}</LatexRenderer>
-                        </div>
-                      ))}
+                      {Object.entries(q.alternativas as Record<string, any>).sort().map(([id, value]) => {
+                        const text = typeof value === "object" ? value.text ?? "" : value;
+                        const file = typeof value === "object" ? value.file : null;
+                        return (
+                          <div key={id} className="flex gap-2 px-3 py-1.5 rounded-lg text-sm"
+                            style={{ background: id === q.gabarito ? "#E0F7F4" : "#F8FAFC", border: id === q.gabarito ? "1px solid #00897B" : "none" }}>
+                            <span className="font-bold w-4 flex-shrink-0" style={{ color: id === q.gabarito ? "#00897B" : "#01738d" }}>{id}</span>
+                            <div className="flex-1">
+                              {file && <img src={file} alt={`Alt ${id}`} className="max-w-xs rounded mb-1" />}
+                              {text && <LatexRenderer inline>{text}</LatexRenderer>}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                     {q.comentario_resolucao && (
                       <div className="rounded-lg p-3" style={{ background: "#F3EAF9" }}>
@@ -307,7 +440,7 @@ export default function AdminQuestoes() {
       )}
 
       {/* Paginação */}
-      {data && data.pagination.totalPages > 1 && (
+      {data && data.pagination.totalPages > 1 && filterTag === "Todas" && (
         <div className="flex items-center justify-center gap-2">
           <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
             className="px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-40"
