@@ -1,22 +1,21 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Loader2, BarChart2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 export default function Login() {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const utils = trpc.useUtils();
 
   const login = trpc.auth.login.useMutation({
-    onSuccess: () => utils.auth.me.invalidate(),
+    onSuccess: () => { window.location.href = "/"; },
     onError: (e) => toast.error(e.message),
   });
 
   const register = trpc.auth.register.useMutation({
-    onSuccess: () => utils.auth.me.invalidate(),
+    onSuccess: () => { window.location.href = "/"; },
     onError: (e) => toast.error(e.message),
   });
 
@@ -47,45 +46,33 @@ export default function Login() {
   };
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center px-4"
-      style={{ background: "#f4f4f4" }}
-    >
+    <div className="min-h-screen flex flex-col items-center justify-center px-4"
+      style={{ background: "#f4f4f4" }}>
       <div className="w-full max-w-sm">
+
         {/* Logo */}
         <div className="text-center mb-8">
-          <div
-            className="inline-flex items-center justify-center h-14 w-14 rounded-2xl mb-3"
-            style={{ background: "#01738d" }}
-          >
-            <BarChart2 className="h-7 w-7 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold" style={{ color: "#01738d" }}>
-            Simulador ENEM
-          </h1>
-          <p className="text-sm mt-1" style={{ color: "#64748B" }}>
-            Matemática com correção pela TRI
-          </p>
+          <img
+            src="/logo-vetor.png"
+            alt="Vetor"
+            className="h-24 w-24 object-contain mx-auto mb-3"
+          />
+          <h1 className="text-2xl font-black tracking-wide" style={{ color: "#01738d" }}>VETOR</h1>
+          <p className="text-sm" style={{ color: "#64748B" }}>Escola de Talentos · Simulador ENEM</p>
         </div>
 
         {/* Card */}
-        <div
-          className="rounded-2xl p-6 space-y-5"
-          style={{ background: "#FFFFFF", boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}
-        >
+        <div className="rounded-2xl p-6 space-y-5"
+          style={{ background: "#FFFFFF", boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
+
           {/* Tabs */}
           <div className="flex rounded-xl overflow-hidden" style={{ background: "#F1F5F9" }}>
             {(["login", "register"] as const).map((m) => (
-              <button
-                key={m}
-                onClick={() => setMode(m)}
+              <button key={m} onClick={() => setMode(m)}
                 className="flex-1 py-2.5 text-sm font-bold transition-colors rounded-xl"
-                style={
-                  mode === m
-                    ? { background: "#01738d", color: "#FFFFFF" }
-                    : { background: "transparent", color: "#64748B" }
-                }
-              >
+                style={mode === m
+                  ? { background: "#01738d", color: "#fff" }
+                  : { background: "transparent", color: "#64748B" }}>
                 {m === "login" ? "Entrar" : "Criar conta"}
               </button>
             ))}
@@ -98,65 +85,35 @@ export default function Login() {
                 <label className="block text-sm font-semibold mb-1.5" style={{ color: "#1E293B" }}>
                   Nome completo
                 </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Seu nome"
-                  style={inputStyle}
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)}
+                  placeholder="Seu nome" style={inputStyle}
                   onFocus={(e) => (e.target.style.borderColor = "#01738d")}
                   onBlur={(e) => (e.target.style.borderColor = "#D1D5DB")}
-                  onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-                />
+                  onKeyDown={(e) => e.key === "Enter" && handleSubmit()} />
               </div>
             )}
-
             <div>
-              <label className="block text-sm font-semibold mb-1.5" style={{ color: "#1E293B" }}>
-                E-mail
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="seu@email.com"
-                style={inputStyle}
+              <label className="block text-sm font-semibold mb-1.5" style={{ color: "#1E293B" }}>E-mail</label>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu@email.com" style={inputStyle}
                 onFocus={(e) => (e.target.style.borderColor = "#01738d")}
                 onBlur={(e) => (e.target.style.borderColor = "#D1D5DB")}
-                onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-              />
+                onKeyDown={(e) => e.key === "Enter" && handleSubmit()} />
             </div>
-
             <div>
-              <label className="block text-sm font-semibold mb-1.5" style={{ color: "#1E293B" }}>
-                Senha
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
-                style={inputStyle}
+              <label className="block text-sm font-semibold mb-1.5" style={{ color: "#1E293B" }}>Senha</label>
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres" style={inputStyle}
                 onFocus={(e) => (e.target.style.borderColor = "#01738d")}
                 onBlur={(e) => (e.target.style.borderColor = "#D1D5DB")}
-                onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-              />
+                onKeyDown={(e) => e.key === "Enter" && handleSubmit()} />
             </div>
           </div>
 
-          {/* Botão principal */}
-          <button
-            onClick={handleSubmit}
-            disabled={isPending}
+          {/* Botão */}
+          <button onClick={handleSubmit} disabled={isPending}
             className="w-full py-4 rounded-xl font-bold text-base flex items-center justify-center gap-2"
-            style={{
-              background: isPending ? "#5BAFC0" : "#01738d",
-              color: "#FFFFFF",
-              fontSize: "1rem",
-              cursor: isPending ? "not-allowed" : "pointer",
-              border: "none",
-            }}
-          >
+            style={{ background: isPending ? "#5BAFC0" : "#01738d", color: "#fff", border: "none", cursor: isPending ? "not-allowed" : "pointer" }}>
             {isPending && <Loader2 className="h-5 w-5 animate-spin" />}
             {mode === "login" ? "Entrar na conta" : "Criar minha conta"}
           </button>
@@ -164,24 +121,14 @@ export default function Login() {
           {/* Link alternativo */}
           <p className="text-center text-sm" style={{ color: "#64748B" }}>
             {mode === "login" ? (
-              <>
-                Não possui conta?{" "}
-                <button
-                  onClick={() => setMode("register")}
-                  className="font-bold underline underline-offset-2"
-                  style={{ color: "#01738d" }}
-                >
-                  Cadastre-se gratuitamente
+              <>Não possui conta?{" "}
+                <button onClick={() => setMode("register")} className="font-bold underline underline-offset-2" style={{ color: "#01738d" }}>
+                  Cadastre-se
                 </button>
               </>
             ) : (
-              <>
-                Já possui conta?{" "}
-                <button
-                  onClick={() => setMode("login")}
-                  className="font-bold underline underline-offset-2"
-                  style={{ color: "#01738d" }}
-                >
+              <>Já possui conta?{" "}
+                <button onClick={() => setMode("login")} className="font-bold underline underline-offset-2" style={{ color: "#01738d" }}>
                   Faça login
                 </button>
               </>
@@ -190,7 +137,7 @@ export default function Login() {
         </div>
 
         <p className="text-center text-xs mt-6" style={{ color: "#94A3B8" }}>
-          Plataforma educacional gratuita · ENEM Matemática
+          © {new Date().getFullYear()} Escola Vetor · Todos os direitos reservados
         </p>
       </div>
     </div>

@@ -1,5 +1,3 @@
-import { BarChart2 } from "lucide-react";
-
 export default function Footer() {
   return (
     <footer style={{ background: "#01738d", marginTop: "4rem" }}>
@@ -8,15 +6,16 @@ export default function Footer() {
 
           {/* Logo e descrição */}
           <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              {/* Placeholder logo Vetor — substitui pela <img> quando tiveres o ficheiro */}
-              <div className="h-10 w-10 rounded-xl flex items-center justify-center font-black text-lg"
-                style={{ background: "rgba(255,255,255,0.2)", color: "#fff" }}>
-                V
-              </div>
+            <div className="flex items-center gap-3">
+              <img
+                src="/logo-vetor.png"
+                alt="Vetor"
+                className="h-14 w-14 object-contain"
+                style={{ filter: "brightness(0) invert(1)" }}
+              />
               <div>
-                <p className="font-black text-white text-lg leading-none">Vetor</p>
-                <p className="text-xs" style={{ color: "rgba(255,255,255,0.7)" }}>Simulador ENEM</p>
+                <p className="font-black text-white text-lg leading-none tracking-wide">VETOR</p>
+                <p className="text-xs" style={{ color: "rgba(255,255,255,0.7)" }}>Escola de Talentos</p>
               </div>
             </div>
             <p className="text-sm" style={{ color: "rgba(255,255,255,0.75)", maxWidth: 220 }}>
@@ -50,13 +49,9 @@ export default function Footer() {
             <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.5)" }}>
               Sobre
             </p>
-            <div className="space-y-2">
-              <p className="text-sm" style={{ color: "rgba(255,255,255,0.75)" }}>
-                Sistema de avaliação progressiva em 3 etapas com metodologia TRI, a mesma utilizada pelo INEP no ENEM.
-              </p>
-            </div>
-
-            {/* Stats */}
+            <p className="text-sm" style={{ color: "rgba(255,255,255,0.75)" }}>
+              Sistema de avaliação progressiva em 3 etapas com metodologia TRI, a mesma utilizada pelo INEP no ENEM.
+            </p>
             <div className="flex gap-4 pt-2">
               <div>
                 <p className="text-xl font-black text-white">3</p>
@@ -67,14 +62,13 @@ export default function Footer() {
                 <p className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>Correção</p>
               </div>
               <div>
-                <p className="text-xl font-black text-white">100%</p>
-                <p className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>Gratuito</p>
+                <p className="text-xl font-black text-white">ENEM</p>
+                <p className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>Formato real</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Linha inferior */}
         <div className="mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2"
           style={{ borderTop: "1px solid rgba(255,255,255,0.15)" }}>
           <p className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>

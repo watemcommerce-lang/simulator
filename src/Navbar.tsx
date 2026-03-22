@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { BarChart2, LogOut, Users } from "lucide-react";
+import { LogOut, Users } from "lucide-react";
 
 export default function Navbar() {
   const [location] = useLocation();
@@ -25,17 +25,22 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50"
       style={{ backgroundColor: "#01738d", boxShadow: "0 2px 8px rgba(1,115,141,0.3)" }}>
-      <div className="container mx-auto px-4 max-w-5xl flex h-14 items-center justify-between">
+      <div className="container mx-auto px-4 max-w-5xl flex h-16 items-center justify-between">
 
+        {/* Logo */}
         <Link href="/">
           <span className="flex items-center gap-2 hover:opacity-85 transition-opacity cursor-pointer">
-            <div className="h-8 w-8 rounded-lg flex items-center justify-center font-black text-sm"
-              style={{ background: "rgba(255,255,255,0.2)", color: "#fff" }}>
-              V
-            </div>
+            <img
+              src="/logo-vetor.png"
+              alt="Vetor"
+              className="h-10 w-10 object-contain"
+              style={{ filter: "brightness(0) invert(1)" }}
+            />
             <div className="hidden sm:block">
-              <p className="font-black text-white text-sm leading-none">Vetor</p>
-              <p className="text-xs leading-none" style={{ color: "rgba(255,255,255,0.7)" }}>Simulador ENEM</p>
+              <p className="font-black text-white text-sm leading-none tracking-wide">VETOR</p>
+              <p className="text-xs leading-none" style={{ color: "rgba(255,255,255,0.7)" }}>
+                Escola de Talentos
+              </p>
             </div>
           </span>
         </Link>
@@ -52,7 +57,7 @@ export default function Navbar() {
             </Link>
           ))}
 
-          {/* Ícone de usuários — só visível para admin */}
+          {/* Ícone usuários — só admin */}
           {session?.role === "admin" && (
             <Link href="/admin/usuarios">
               <span
