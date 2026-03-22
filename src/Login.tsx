@@ -170,7 +170,7 @@ export default function Login() {
           <p className="text-center text-sm" style={{ color: "var(--muted-foreground)" }}>
             {mode === "login" ? (
               <>
-                Não tens conta?{" "}
+                Não tem conta?{" "}
                 <button
                   onClick={() => setMode("register")}
                   className="font-semibold underline underline-offset-2"
@@ -181,7 +181,7 @@ export default function Login() {
               </>
             ) : (
               <>
-                Já tens conta?{" "}
+                Já tem conta?{" "}
                 <button
                   onClick={() => setMode("login")}
                   className="font-semibold underline underline-offset-2"
