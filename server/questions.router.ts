@@ -114,9 +114,10 @@ export const questionsRouter = createTRPCRouter({
     }),
 
   // Admin: elimina TODAS as questões do banco
-  deleteAll: adminProcedure
-    .mutation(async ({ ctx }) => {
-      await ctx.db.delete(questions);
+ delete: adminProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.delete(questions).where(eq(questions.id, input.id));
       return { success: true };
     }),
 });
