@@ -6,39 +6,53 @@ import { createContext } from "./trpc";
 import { appRouter } from "./router";
 import { authMiddleware } from "./auth";
 import { db } from "./db";
-import { questions } from "./schema";
+import { questions, users } from "./schema";
+import { eq } from "drizzle-orm";
 
 const app = express();
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 const isProd = process.env.NODE_ENV === "production";
 
-// CRÍTICO: diz ao Express para confiar no proxy do Railway
 app.set("trust proxy", 1);
-
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(authMiddleware);
 
 // =============================================================================
-// Rota de importação de questões
+// Rota: promover utilizador a admin
+// URL: /admin/make-admin?secret=IMPORTAR2024&email=teu@email.com
+// =============================================================================
+
+app.get("/admin/make-admin", async (req, res) => {
+  const secret = req.query.secret as string;
+  const email = req.query.email as string;
+  const IMPORT_SECRET = process.env.IMPORT_SECRET ?? "IMPORTAR2024";
+
+  if (secret !== IMPORT_SECRET) return res.status(401).send("Senha incorrecta.");
+  if (!email) return res.status(400).send("Forneça ?email=teu@email.com");
+
+  try {
+    await db.update(users).set({ role: "admin" }).where(eq(users.email, email.toLowerCase().trim()));
+    res.send(`✅ ${email} é agora admin. Faça logout e login novamente no site.`);
+  } catch (err: any) {
+    res.status(500).send(`Erro: ${err.message}`);
+  }
+});
+
+// =============================================================================
+// Rota: importar questões do ENEM
 // URL: /admin/import?secret=IMPORTAR2024&year=2023
 // =============================================================================
 
 app.get("/admin/import", async (req, res) => {
   const secret = req.query.secret as string;
   const IMPORT_SECRET = process.env.IMPORT_SECRET ?? "IMPORTAR2024";
-
-  if (secret !== IMPORT_SECRET) {
-    return res.status(401).send("Senha incorrecta. Use ?secret=IMPORTAR2024");
-  }
+  if (secret !== IMPORT_SECRET) return res.status(401).send("Senha incorrecta.");
 
   const year = Number(req.query.year ?? 2023);
-
   res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
-
   const log = (msg: string) => { console.log(msg); res.write(msg + "\n"); };
-
   log(`Iniciando importação — ENEM ${year}...`);
 
   try {
@@ -67,8 +81,8 @@ app.get("/admin/import", async (req, res) => {
       const r = index / 45;
       if (r < 0.25) return { a: 0.8, b: -1.5, c: 0.2, nivel: "Baixa" as const };
       if (r < 0.50) return { a: 1.0, b: -0.5, c: 0.2, nivel: "Média" as const };
-      if (r < 0.75) return { a: 1.2, b: 0.5,  c: 0.2, nivel: "Alta" as const };
-      return               { a: 1.5, b: 1.5,  c: 0.2, nivel: "Muito Alta" as const };
+      if (r < 0.75) return { a: 1.2, b: 0.5, c: 0.2, nivel: "Alta" as const };
+      return { a: 1.5, b: 1.5, c: 0.2, nivel: "Muito Alta" as const };
     }
 
     let inseridas = 0;
@@ -80,37 +94,28 @@ app.get("/admin/import", async (req, res) => {
         alternativas[alt.letter] = alt.text || (alt.file ? `[Imagem]` : "");
       }
       if (Object.keys(alternativas).length < 2) { ignoradas++; continue; }
-
       const tri = estimateTRI(q.index);
       try {
         await db.insert(questions).values({
-          fonte: "ENEM",
-          ano: q.year,
+          fonte: "ENEM", ano: q.year,
           conteudo_principal: "Matemática e suas Tecnologias",
           tags: ["Matemática", "ENEM", `ENEM ${q.year}`],
           nivel_dificuldade: tri.nivel,
-          param_a: tri.a,
-          param_b: tri.b,
-          param_c: tri.c,
+          param_a: tri.a, param_b: tri.b, param_c: tri.c,
           enunciado: (q.context ?? `Questão ${q.index} — ENEM ${q.year}`).trim(),
           url_imagem: q.files?.[0] ?? null,
-          alternativas,
-          gabarito: (q.correctAlternative ?? "A").toUpperCase(),
-          comentario_resolucao: null,
-          active: true,
+          alternativas, gabarito: (q.correctAlternative ?? "A").toUpperCase(),
+          comentario_resolucao: null, active: true,
         });
         inseridas++;
         if (inseridas % 5 === 0) log(`  ${inseridas} inseridas...`);
-      } catch {
-        ignoradas++;
-      }
+      } catch { ignoradas++; }
     }
 
     log(`\nConcluído: ${inseridas} inseridas, ${ignoradas} ignoradas.`);
   } catch (err: any) {
     log(`Erro: ${err.message}`);
   }
-
   res.end();
 });
 
@@ -118,16 +123,11 @@ app.get("/admin/import", async (req, res) => {
 // tRPC
 // =============================================================================
 
-app.use(
-  "/api/trpc",
-  createExpressMiddleware({
-    router: appRouter,
-    createContext,
-    onError: !isProd
-      ? ({ path, error }) => console.error(`[tRPC] /${path}:`, error.message)
-      : undefined,
-  })
-);
+app.use("/api/trpc", createExpressMiddleware({
+  router: appRouter,
+  createContext,
+  onError: !isProd ? ({ path, error }) => console.error(`[tRPC] /${path}:`, error.message) : undefined,
+}));
 
 // =============================================================================
 // Frontend estático
@@ -136,9 +136,7 @@ app.use(
 if (isProd) {
   const distPath = path.resolve(import.meta.dirname, "../dist/public");
   app.use(express.static(distPath));
-  app.get("*", (_req, res) => {
-    res.sendFile(path.join(distPath, "index.html"));
-  });
+  app.get("*", (_req, res) => res.sendFile(path.join(distPath, "index.html")));
 }
 
 app.listen(PORT, "0.0.0.0", () => {
