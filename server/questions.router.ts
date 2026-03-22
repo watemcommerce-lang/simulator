@@ -18,14 +18,14 @@ const QuestionBaseSchema = z.object({
   param_c: z.number().min(0.0).max(0.5).default(0.2),
   enunciado: z.string().min(5),
   url_imagem: z.string().url().nullable().optional(),
-  alternativas: z.record(z.string().min(1).max(5), z.string().min(1)),
+  alternativas: z.record(z.string().min(1).max(5), z.any()),
   gabarito: z.string().length(1),
   comentario_resolucao: z.string().optional(),
 });
 
 export const questionsRouter = createTRPCRouter({
 
-  // Listagem pública para alunos autenticados
+  // Listagem para alunos autenticados
   list: protectedProcedure
     .input(z.object({
       page: z.number().int().min(1).default(1),
@@ -63,7 +63,7 @@ export const questionsRouter = createTRPCRouter({
       };
     }),
 
-  // Admin: busca questão completa por ID
+  // Admin: questão completa por ID
   getByIdAdmin: adminProcedure
     .input(z.object({ id: z.number().int().positive() }))
     .query(async ({ ctx, input }) => {
@@ -90,7 +90,7 @@ export const questionsRouter = createTRPCRouter({
     .input(QuestionBaseSchema.partial().extend({ id: z.number().int().positive() }))
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      const updateData: Partial<NewQuestion> = { ...data };
+      const updateData: Partial<NewQuestion> = { ...data } as any;
       if (data.gabarito) updateData.gabarito = data.gabarito.toUpperCase();
       if (data.url_imagem !== undefined) updateData.url_imagem = data.url_imagem ?? null;
       await ctx.db.update(questions).set(updateData).where(eq(questions.id, id));
@@ -105,11 +105,18 @@ export const questionsRouter = createTRPCRouter({
       return { success: true };
     }),
 
-  // Admin: elimina permanentemente
+  // Admin: elimina uma questão
   delete: adminProcedure
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ ctx, input }) => {
       await ctx.db.delete(questions).where(eq(questions.id, input.id));
+      return { success: true };
+    }),
+
+  // Admin: elimina TODAS as questões do banco
+  deleteAll: adminProcedure
+    .mutation(async ({ ctx }) => {
+      await ctx.db.delete(questions);
       return { success: true };
     }),
 });
