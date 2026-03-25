@@ -4,52 +4,177 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ============================================================
+   Tema claro (padrão)
+   ============================================================ */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --border: oklch(0.922 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --radius: 0.75rem;
+
+  --teal:          #01738d;
+  --teal-dark:     #005f75;
+  --teal-soft:     #E0F7F4;
+
+  --background:         #FFFFFF;
+  --foreground:         #1A1A2E;
+  --card:               #FFFFFF;
+  --card-foreground:    #1A1A2E;
+  --muted:              #F5F3F8;
+  --muted-foreground:   #6B6880;
+  --border:             #E2D9EE;
+  --primary:            #01738d;
+  --primary-foreground: #FFFFFF;
+  --input:              #E2D9EE;
+
+  --text-question:  #1A1A2E;
+  --text-label:     #1A1A2E;
+  --bg-alt:         #F8FAFC;
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --border: oklch(0.269 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
+/* ============================================================
+   Tema escuro — detectado automaticamente pelo browser
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background:         #0F172A;
+    --foreground:         #F1F5F9;
+    --card:               #1E293B;
+    --card-foreground:    #F1F5F9;
+    --muted:              #1E293B;
+    --muted-foreground:   #94A3B8;
+    --border:             #334155;
+    --primary:            #22D3C8;
+    --primary-foreground: #0F172A;
+    --input:              #334155;
+
+    --teal:          #22D3C8;
+    --teal-dark:     #0EA5E9;
+    --teal-soft:     #0F3445;
+
+    --text-question:  #F1F5F9;
+    --text-label:     #F1F5F9;
+    --bg-alt:         #1E293B;
+  }
 }
 
-* {
+/* ============================================================
+   Base
+   ============================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
   border-color: var(--border);
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============================================================
+   KaTeX — sempre na cor do texto actual
+   ============================================================ */
+.katex, .katex * {
+  color: var(--text-question) !important;
+}
+
+/* ============================================================
+   Componentes
+   ============================================================ */
+.card {
+  background-color: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  color: var(--card-foreground);
+}
+
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.55rem 1.25rem; border-radius: var(--radius);
+  background-color: var(--teal); color: var(--primary-foreground);
+  font-weight: 600; font-size: 0.9rem; border: none; cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn-primary:hover { opacity: 0.85; }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-outline {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.55rem 1.25rem; border-radius: var(--radius);
+  background: transparent; color: var(--teal);
+  font-weight: 600; font-size: 0.9rem;
+  border: 2px solid var(--teal); cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-outline:hover { background-color: var(--teal-soft); }
+
+.timer {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.35rem 0.85rem; border-radius: 99px;
+  font-family: monospace; font-weight: 700; font-size: 0.95rem;
+  transition: background 0.3s, color 0.3s;
+}
+.timer.ok   { background: var(--teal-soft); color: var(--teal-dark); }
+.timer.warn { background: #450A0A; color: #FCA5A5; }
+
+@media (prefers-color-scheme: light) {
+  .timer.warn { background: #FFEBEE; color: #C62828; }
+}
+
+.progress-bar {
+  height: 6px; background: var(--border);
+  border-radius: 99px; overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, var(--teal), #8B5CF6);
+  transition: width 0.4s ease;
+}
+
+.alternative {
+  display: flex; align-items: flex-start; gap: 0.75rem;
+  padding: 0.75rem 1rem; border-radius: var(--radius);
+  border: 2px solid var(--border);
+  background: var(--card);
+  cursor: pointer; text-align: left; width: 100%;
+  color: var(--card-foreground);
+  transition: border-color 0.15s, background 0.15s;
+}
+.alternative:hover:not(:disabled) {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+}
+.alternative.selected {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+}
+.alternative.correct  {
+  border-color: #16A34A;
+  background: #052E16;
+  color: #BBF7D0;
+}
+.alternative.wrong {
+  border-color: #DC2626;
+  background: #450A0A;
+  color: #FECACA;
+}
+
+@media (prefers-color-scheme: light) {
+  .alternative.correct {
+    border-color: #16A34A;
+    background: #DCFCE7;
+    color: #14532D;
+  }
+  .alternative.wrong {
+    border-color: #DC2626;
+    background: #FFEBEE;
+    color: #7F1D1D;
+  }
+}
+
+.alt-badge {
+  flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid currentColor; display: flex; align-items: center;
+  justify-content: center; font-size: 0.78rem; font-weight: 700; margin-top: 1px;
 }
