@@ -87,13 +87,50 @@ app.get("/admin/import", async (req, res) => {
 
     let inseridas = 0;
     let ignoradas = 0;
+    let erros = 0;
 
     for (const q of allQuestions) {
+      // -----------------------------------------------------------------------
+      // 1. Alternativas: preserva imagens como [Imagem: url] para renderização
+      // -----------------------------------------------------------------------
       const alternativas: Record<string, string> = {};
       for (const alt of (q.alternatives ?? [])) {
-        alternativas[alt.letter] = alt.text || (alt.file ? `[Imagem]` : "");
+        if (alt.text && alt.file) {
+          // Texto + imagem: concatena
+          alternativas[alt.letter] = `${alt.text}\n[Imagem: ${alt.file}]`;
+        } else if (alt.file) {
+          // Só imagem: usa tag renderizável (não descarta!)
+          alternativas[alt.letter] = `[Imagem: ${alt.file}]`;
+        } else {
+          alternativas[alt.letter] = alt.text ?? "";
+        }
       }
-      if (Object.keys(alternativas).length < 2) { ignoradas++; continue; }
+      // Descarta só se não tiver nenhuma alternativa mapeada
+      if (Object.keys(alternativas).length < 2) {
+        ignoradas++;
+        log(`  [ignorada] Questão ${q.index}/${q.year}: apenas ${Object.keys(alternativas).length} alternativa(s).`);
+        continue;
+      }
+
+      // -----------------------------------------------------------------------
+      // 2. Enunciado: context + alternativesIntroduction (o "comando")
+      //    + imagens inline (todas, não só a primeira)
+      // -----------------------------------------------------------------------
+      const partes: string[] = [];
+      if (q.context)                   partes.push(q.context.trim());
+      if (q.alternativesIntroduction)  partes.push(q.alternativesIntroduction.trim());
+
+      // Embute imagens do enunciado como [Imagem: url] — quantas forem
+      const imagensEnunciado: string[] = q.files ?? [];
+      for (const imgUrl of imagensEnunciado) {
+        partes.push(`[Imagem: ${imgUrl}]`);
+      }
+
+      const enunciado = partes.join("\n\n") || `Questão ${q.index} — ENEM ${q.year}`;
+
+      // -----------------------------------------------------------------------
+      // 3. Insere no banco
+      // -----------------------------------------------------------------------
       const tri = estimateTRI(q.index);
       try {
         await db.insert(questions).values({
@@ -102,17 +139,20 @@ app.get("/admin/import", async (req, res) => {
           tags: ["Matemática", "ENEM", `ENEM ${q.year}`],
           nivel_dificuldade: tri.nivel,
           param_a: tri.a, param_b: tri.b, param_c: tri.c,
-          enunciado: (q.context ?? `Questão ${q.index} — ENEM ${q.year}`).trim(),
-          url_imagem: q.files?.[0] ?? null,
+          enunciado,
+          url_imagem: null,          // imagens agora ficam inline no enunciado
           alternativas, gabarito: (q.correctAlternative ?? "A").toUpperCase(),
           comentario_resolucao: null, active: true,
         });
         inseridas++;
         if (inseridas % 5 === 0) log(`  ${inseridas} inseridas...`);
-      } catch { ignoradas++; }
+      } catch (err: any) {
+        erros++;
+        log(`  [erro] Questão ${q.index}/${q.year}: ${err.message}`);
+      }
     }
 
-    log(`\nConcluído: ${inseridas} inseridas, ${ignoradas} ignoradas.`);
+    log(`\nConcluído: ${inseridas} inseridas, ${ignoradas} ignoradas (sem alternativas), ${erros} erros de banco.`);
   } catch (err: any) {
     log(`Erro: ${err.message}`);
   }
