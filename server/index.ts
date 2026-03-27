@@ -114,16 +114,26 @@ app.get("/admin/import", async (req, res) => {
 
       // -----------------------------------------------------------------------
       // 2. Enunciado: context + alternativesIntroduction (o "comando")
-      //    + imagens inline (todas, não só a primeira)
+      //    Converte qualquer formato de imagem Markdown para [Imagem: url]
       // -----------------------------------------------------------------------
-      const partes: string[] = [];
-      if (q.context)                   partes.push(q.context.trim());
-      if (q.alternativesIntroduction)  partes.push(q.alternativesIntroduction.trim());
 
-      // Embute imagens do enunciado como [Imagem: url] — quantas forem
-      const imagensEnunciado: string[] = q.files ?? [];
-      for (const imgUrl of imagensEnunciado) {
-        partes.push(`[Imagem: ${imgUrl}]`);
+      // Converte formatos vindos da API para o padrão da plataforma:
+      //   ![](url)       → [Imagem: url]
+      //   ![alt](url)    → [Imagem: url]
+      function normalizeImages(text: string): string {
+        return text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, "[Imagem: $2]");
+      }
+
+      const partes: string[] = [];
+      if (q.context)                  partes.push(normalizeImages(q.context.trim()));
+      if (q.alternativesIntroduction) partes.push(normalizeImages(q.alternativesIntroduction.trim()));
+
+      // Adiciona imagens do campo files que ainda não estejam no enunciado
+      const textoAtual = partes.join(" ");
+      for (const imgUrl of (q.files ?? [])) {
+        if (!textoAtual.includes(imgUrl)) {
+          partes.push(`[Imagem: ${imgUrl}]`);
+        }
       }
 
       const enunciado = partes.join("\n\n") || `Questão ${q.index} — ENEM ${q.year}`;
