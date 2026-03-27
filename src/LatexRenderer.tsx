@@ -237,7 +237,7 @@ export function QuestionCard({
 
       <LatexRenderer fontSize="base">{enunciado}</LatexRenderer>
 
-      {url_imagem && (
+      {url_imagem && !enunciado.includes(url_imagem) && (
         <figure className="my-3">
           <img src={url_imagem} alt={`Imagem da questão ${order}`}
             className="max-w-full rounded-xl mx-auto"
