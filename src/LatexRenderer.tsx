@@ -15,13 +15,17 @@ type Segment =
   | { type: "latex-inline"; content: string }
   | { type: "image"; url: string };
 
-function parseSegments(text: string): Segment[] {
-  const segments: Segment[] = [];
-  // Detecta [Imagem: url] ou [imagem] ou [Imagem]
-  const imgRegex = /\[Imagem(?::\s*(https?:\/\/[^\]]+))?\]/gi;
-  const mathRegex = /\\\[([\s\S]*?)\\\]|\$\$([\s\S]*?)\$\$|\\\(([\s\S]*?)\\\)|\$([^\s$][^$]*?[^\s$]|\S)\$/g;
+function normalizeImageFormats(text: string): string {
+  // Converte formato Markdown ![alt](url) para [Imagem: url]
+  // Cobre questões já no banco importadas antes da correção do importador
+  return text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, "[Imagem: $2]");
+}
 
-  // Une todos os padrões
+function parseSegments(rawText: string): Segment[] {
+  const text = normalizeImageFormats(rawText);
+  const segments: Segment[] = [];
+
+  // Une todos os padrões: [Imagem: url], LaTeX display, LaTeX inline
   const combined = /\[Imagem(?::\s*(https?:\/\/[^\]]+))?\]|\\\[([\s\S]*?)\\\]|\$\$([\s\S]*?)\$\$|\\\(([\s\S]*?)\\\)|\$([^\s$][^$]*?[^\s$]|\S)\$/gi;
 
   let lastIndex = 0;
