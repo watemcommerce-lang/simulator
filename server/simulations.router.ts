@@ -21,7 +21,7 @@ import { z } from "zod";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "./trpc";
-import { questions, simulations, simulationAnswers } from "./schema";
+import { questions, simulations, simulationAnswers, users } from "./schema";
 import type { NewSimulation, NewSimulationAnswer } from "./schema";
 import {
   estimateTheta,
@@ -627,6 +627,192 @@ export const simulationsRouter = createTRPCRouter({
     });
 
     return stageStats;
+  }),
+
+
+  // ---------------------------------------------------------------------------
+  // STATS — streak, metas semanais, gráfico diário (dashboard)
+  // ---------------------------------------------------------------------------
+  getStats: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.user.id;
+
+    // Todos os simulados concluídos, do mais recente ao mais antigo
+    const completed = await ctx.db
+      .select({
+        id: simulations.id,
+        stage: simulations.stage,
+        correctCount: simulations.correctCount,
+        totalQuestions: simulations.totalQuestions,
+        score: simulations.score,
+        completedAt: simulations.completedAt,
+      })
+      .from(simulations)
+      .where(and(eq(simulations.userId, userId), eq(simulations.status, "completed")))
+      .orderBy(desc(simulations.completedAt));
+
+    const now = new Date();
+
+    // --- Streak: dias consecutivos com pelo menos 1 simulado ---
+    let streak = 0;
+    const daySet = new Set(
+      completed
+        .filter((s) => s.completedAt)
+        .map((s) => {
+          const d = new Date(s.completedAt!);
+          return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        })
+    );
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      if (daySet.has(key)) streak++;
+      else if (i > 0) break; // para no primeiro dia sem atividade
+    }
+
+    // --- Semana atual (seg a dom) ---
+    const startOfWeek = new Date(now);
+    startOfWeek.setHours(0, 0, 0, 0);
+    const dayOfWeek = startOfWeek.getDay(); // 0=dom
+    startOfWeek.setDate(startOfWeek.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+
+    const thisWeek = completed.filter(
+      (s) => s.completedAt && new Date(s.completedAt) >= startOfWeek
+    );
+
+    const weeklyQuestions = thisWeek.reduce((s, sim) => s + (sim.totalQuestions ?? 0), 0);
+    const weeklyCorrect = thisWeek.reduce((s, sim) => s + (sim.correctCount ?? 0), 0);
+    const weeklyAccuracy = weeklyQuestions > 0
+      ? Math.round((weeklyCorrect / weeklyQuestions) * 100)
+      : 0;
+
+    // --- Gráfico: últimos 7 dias ---
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(startOfWeek);
+      d.setDate(d.getDate() + i);
+      return d;
+    });
+
+    const dailyData = days.map((day) => {
+      const label = ["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"][day.getDay() === 0 ? 6 : day.getDay() - 1];
+      const daySims = completed.filter((s) => {
+        if (!s.completedAt) return false;
+        const sd = new Date(s.completedAt);
+        return (
+          sd.getFullYear() === day.getFullYear() &&
+          sd.getMonth() === day.getMonth() &&
+          sd.getDate() === day.getDate()
+        );
+      });
+      const q = daySims.reduce((s, sim) => s + (sim.totalQuestions ?? 0), 0);
+      const c = daySims.reduce((s, sim) => s + (sim.correctCount ?? 0), 0);
+      return {
+        label,
+        questoes: q,
+        acertos: c,
+        pct: q > 0 ? Math.round((c / q) * 100) : 0,
+      };
+    });
+
+    return {
+      streak,
+      weeklyQuestions,
+      weeklyAccuracy,
+      totalSimulations: completed.length,
+      dailyData,
+    };
+  }),
+
+  // ---------------------------------------------------------------------------
+  // RANKING — top 20 alunos por melhor nota TRI na Etapa 3
+  // ---------------------------------------------------------------------------
+  getRanking: protectedProcedure.query(async ({ ctx }) => {
+    const rows = await ctx.db
+      .select({
+        userId: simulations.userId,
+        score: simulations.score,
+        correctCount: simulations.correctCount,
+        completedAt: simulations.completedAt,
+        userName: users.name,
+      })
+      .from(simulations)
+      .innerJoin(users, eq(simulations.userId, users.id))
+      .where(and(eq(simulations.stage, 3), eq(simulations.status, "completed")))
+      .orderBy(desc(simulations.score))
+      .limit(100);
+
+    // Pega melhor resultado por aluno
+    const bestByUser = new Map<number, typeof rows[0]>();
+    for (const row of rows) {
+      const existing = bestByUser.get(row.userId);
+      if (!existing || (row.score ?? 0) > (existing.score ?? 0)) {
+        bestByUser.set(row.userId, row);
+      }
+    }
+
+    const ranking = Array.from(bestByUser.values())
+      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+      .slice(0, 20)
+      .map((r, idx) => ({
+        position: idx + 1,
+        userId: r.userId,
+        userName: r.userName,
+        score: r.score,
+        correctCount: r.correctCount,
+        completedAt: r.completedAt,
+        isMe: r.userId === ctx.user.id,
+      }));
+
+    return ranking;
+  }),
+
+  // ---------------------------------------------------------------------------
+  // TREINO LIVRE — sorteia N questões de um tópico com gabarito imediato
+  // ---------------------------------------------------------------------------
+  startFreeTraining: protectedProcedure
+    .input(z.object({
+      conteudo: z.string().optional(),
+      count: z.number().int().min(1).max(20).default(10),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const filters: any[] = [eq(questions.active, true)];
+      if (input.conteudo) {
+        filters.push(sql`${questions.conteudo_principal} = ${input.conteudo}`);
+      }
+
+      const rows = await ctx.db
+        .select({
+          id: questions.id,
+          enunciado: questions.enunciado,
+          url_imagem: questions.url_imagem,
+          alternativas: questions.alternativas,
+          gabarito: questions.gabarito,
+          comentario_resolucao: questions.comentario_resolucao,
+          conteudo_principal: questions.conteudo_principal,
+          nivel_dificuldade: questions.nivel_dificuldade,
+          tags: questions.tags,
+        })
+        .from(questions)
+        .where(and(...filters))
+        .orderBy(sql`RAND()`)
+        .limit(input.count);
+
+      return { questions: rows };
+    }),
+
+  // Tópicos disponíveis para treino livre
+  getTopics: protectedProcedure.query(async ({ ctx }) => {
+    const rows = await ctx.db
+      .select({
+        conteudo: questions.conteudo_principal,
+        total: sql<number>`COUNT(*)`,
+      })
+      .from(questions)
+      .where(eq(questions.active, true))
+      .groupBy(questions.conteudo_principal)
+      .orderBy(questions.conteudo_principal);
+
+    return rows;
   }),
 
   // ---------------------------------------------------------------------------
