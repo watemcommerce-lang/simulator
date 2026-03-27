@@ -4,8 +4,11 @@ import { toast } from "sonner";
 import {
   Lock, CheckCircle2, PlayCircle, Trophy, Clock,
   Target, ChevronRight, Loader2, Timer, BarChart2,
-  BookOpen, Brain, Award
+  BookOpen, Brain, Award, Flame, Zap, Medal
 } from "lucide-react";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell
+} from "recharts";
 
 const STAGES = [
   { label: "Etapa 1", desc: "15 questões · mínimo 12 acertos", time: "5 min por questão", color: "#01738d", soft: "#E0F7F4" },
@@ -35,8 +38,8 @@ export default function Dashboard() {
   const [, navigate] = useLocation();
   const { data: progress, isLoading } = trpc.simulations.getProgress.useQuery();
   const { data: active } = trpc.simulations.getActive.useQuery();
+  const { data: stats } = trpc.simulations.getStats.useQuery();
 
-  // Contador de questões
   const { data: questionsData } = trpc.questions.list.useQuery({
     page: 1, pageSize: 1, activeOnly: true, orderBy: "id", orderDir: "desc",
   });
@@ -68,28 +71,34 @@ export default function Dashboard() {
           <p className="text-base mb-6" style={{ color: "rgba(255,255,255,0.85)", maxWidth: 480 }}>
             Simulados progressivos com correção pela Teoria de Resposta ao Item — a mesma metodologia usada pelo INEP.
           </p>
-
-          {/* Contador de questões */}
           <div className="inline-flex items-center gap-3 px-4 py-3 rounded-2xl mb-6" style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)" }}>
             <div className="text-center">
-              <p className="text-2xl font-black">
-                {totalQuestions > 0 ? `${totalQuestions}+` : "—"}
-              </p>
-              <p className="text-xs" style={{ color: "rgba(255,255,255,0.75)" }}>questões disponíveis</p>
+              <p className="text-2xl font-black">{totalQuestions > 0 ? `${totalQuestions}+` : "—"}</p>
+              <p className="text-xs" style={{ color: "rgba(255,255,255,0.75)" }}>questões</p>
             </div>
             <div className="w-px h-10 bg-white opacity-20" />
             <div className="text-center">
               <p className="text-2xl font-black">3</p>
-              <p className="text-xs" style={{ color: "rgba(255,255,255,0.75)" }}>etapas progressivas</p>
+              <p className="text-xs" style={{ color: "rgba(255,255,255,0.75)" }}>etapas</p>
             </div>
             <div className="w-px h-10 bg-white opacity-20" />
             <div className="text-center">
               <p className="text-2xl font-black">TRI</p>
               <p className="text-xs" style={{ color: "rgba(255,255,255,0.75)" }}>correção real</p>
             </div>
+            {stats && (
+              <>
+                <div className="w-px h-10 bg-white opacity-20" />
+                <div className="text-center">
+                  <p className="text-2xl font-black flex items-center gap-1 justify-center">
+                    <Flame className="h-5 w-5" style={{ color: "#FFA726" }} />
+                    {stats.streak}
+                  </p>
+                  <p className="text-xs" style={{ color: "rgba(255,255,255,0.75)" }}>dias streak</p>
+                </div>
+              </>
+            )}
           </div>
-
-          {/* CTA */}
           <div>
             <button
               onClick={() => navigate("/simulado")}
@@ -102,6 +111,81 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Metas semanais + gráfico */}
+      {stats && (
+        <section className="grid gap-4 sm:grid-cols-2">
+          {/* Cards de meta */}
+          <div className="rounded-2xl p-5 space-y-4" style={{ background: "#fff", border: "1.5px solid #E2D9EE" }}>
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-sm" style={{ color: "#1A1A2E" }}>Semana atual</h2>
+              <button
+                onClick={() => navigate("/ranking")}
+                className="flex items-center gap-1 text-xs font-semibold"
+                style={{ color: "#01738d" }}
+              >
+                <Medal className="h-3.5 w-3.5" /> Ranking
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "#E0F7F4" }}>
+                  <Zap className="h-4 w-4" style={{ color: "#01738d" }} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs" style={{ color: "#64748B" }}>Questões respondidas</p>
+                  <p className="font-bold text-sm" style={{ color: "#1A1A2E" }}>{stats.weeklyQuestions}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "#E0F7F4" }}>
+                  <Target className="h-4 w-4" style={{ color: "#01738d" }} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs" style={{ color: "#64748B" }}>Taxa de acerto</p>
+                  <p className="font-bold text-sm" style={{ color: "#1A1A2E" }}>{stats.weeklyAccuracy}%</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "#FFF8E1" }}>
+                  <Flame className="h-4 w-4" style={{ color: "#E65100" }} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs" style={{ color: "#64748B" }}>Streak atual</p>
+                  <p className="font-bold text-sm" style={{ color: "#1A1A2E" }}>{stats.streak} {stats.streak === 1 ? "dia" : "dias"} consecutivos</p>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate("/treino")}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm text-white"
+              style={{ background: "#01738d" }}
+            >
+              <Brain className="h-4 w-4" /> Treino livre
+            </button>
+          </div>
+
+          {/* Gráfico diário */}
+          <div className="rounded-2xl p-5" style={{ background: "#fff", border: "1.5px solid #E2D9EE" }}>
+            <h2 className="font-bold text-sm mb-4" style={{ color: "#1A1A2E" }}>Questões por dia</h2>
+            <ResponsiveContainer width="100%" height={160}>
+              <BarChart data={stats.dailyData} margin={{ top: 0, right: 0, left: -28, bottom: 0 }}>
+                <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip
+                  contentStyle={{ background: "#fff", border: "1px solid #E2D9EE", borderRadius: 8, fontSize: 12 }}
+                  formatter={(v: number, name: string) => [v, name === "questoes" ? "Questões" : "Acertos"]}
+                />
+                <Bar dataKey="questoes" radius={[4, 4, 0, 0]} maxBarSize={32}>
+                  {stats.dailyData.map((entry, i) => (
+                    <Cell key={i} fill={entry.questoes > 0 ? "#01738d" : "#E2D9EE"} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
+      )}
 
       {/* Simulado em andamento */}
       {active && (

@@ -14,6 +14,8 @@ export default function Navbar() {
     { href: "/simulado", label: "Simulado" },
     { href: "/questoes", label: "Questões" },
     { href: "/historico", label: "Histórico" },
+    { href: "/treino", label: "Treino" },
+    { href: "/ranking", label: "Ranking" },
     ...(session?.role === "admin" ? [{ href: "/admin/questoes", label: "Admin" }] : []),
   ];
 

@@ -9,6 +9,8 @@ import Historico from "@/Historico";
 import Questoes from "@/Questoes";
 import AdminQuestoes from "@/AdminQuestoes";
 import AdminUsuarios from "@/AdminUsuarios";
+import Treino from "@/Treino";
+import Ranking from "@/Ranking";
 import Login from "@/Login";
 import { Loader2, AlertTriangle } from "lucide-react";
 
@@ -76,6 +78,8 @@ export default function App() {
             {(params) => <Resultado id={Number(params.id)} />}
           </Route>
           <Route path="/historico"><Historico /></Route>
+          <Route path="/treino"><Treino /></Route>
+          <Route path="/ranking"><Ranking /></Route>
           <Route path="/admin/questoes">
             {isAdmin ? <AdminQuestoes /> : <Redirect to="/" />}
           </Route>
