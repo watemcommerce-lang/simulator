@@ -1,0 +1,36 @@
+[
+  {
+    "ano": 2025,
+    "conteudo_principal": "Funções Quadráticas",
+    "nivel_dificuldade": "Média",
+    "enunciado": "Uma empresa modela seu lucro mensal, em milhares de reais, pela função f(x) = -x² + 8x - 7, onde x representa o número de produtos fabricados (em centenas). Qual é o lucro máximo que a empresa pode obter e para quantos produtos isso ocorre?",
+    "url_imagem": null,
+    "alternativas": {
+      "A": "O lucro máximo é de R$ 9.000,00, fabricando 400 produtos.",
+      "B": "O lucro máximo é de R$ 9.000,00, fabricando 300 produtos.",
+      "C": "O lucro máximo é de R$ 7.000,00, fabricando 400 produtos.",
+      "D": "O lucro máximo é de R$ 16.000,00, fabricando 800 produtos.",
+      "E": "O lucro máximo é de R$ 7.000,00, fabricando 300 produtos."
+    },
+    "gabarito": "A",
+    "comentario_resolucao": "A função f(x) = -x² + 8x - 7 é uma parábola com concavidade para baixo (a = -1 < 0), logo tem ponto de máximo no vértice.\n\nO x do vértice é: xᵥ = -b/(2a) = -8/(2·(-1)) = 4\n\nPortanto o máximo ocorre em x = 4 (ou seja, 400 produtos).\n\nO valor máximo é: f(4) = -(4)² + 8·(4) - 7 = -16 + 32 - 7 = 9\n\nComo f(x) está em milhares de reais, o lucro máximo é R$ 9.000,00.",
+    "tags": ["Matemática", "ENEM", "Funções Quadráticas", "Vértice da Parábola", "Máximos e Mínimos"]
+  },
+  {
+    "ano": 2025,
+    "conteudo_principal": "Probabilidade",
+    "nivel_dificuldade": "Alta",
+    "enunciado": "Em uma turma de 30 alunos, 18 praticam esportes, 12 tocam algum instrumento musical e 5 praticam as duas atividades. Um aluno é escolhido aleatoriamente. Qual é a probabilidade de que ele NÃO pratique nenhuma das duas atividades?",
+    "url_imagem": null,
+    "alternativas": {
+      "A": "1/6",
+      "B": "1/5",
+      "C": "1/4",
+      "D": "1/3",
+      "E": "2/5"
+    },
+    "gabarito": "A",
+    "comentario_resolucao": "Usando o princípio da inclusão-exclusão:\n\nAlunos que praticam pelo menos uma atividade:\n|E ∪ M| = |E| + |M| - |E ∩ M| = 18 + 12 - 5 = 25\n\nAlunos que não praticam nenhuma:\n30 - 25 = 5\n\nProbabilidade: 5/30 = 1/6",
+    "tags": ["Matemática", "ENEM", "Probabilidade", "Princípio da Inclusão-Exclusão", "Conjuntos"]
+  }
+]
