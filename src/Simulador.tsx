@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { QuestionCard } from "@/LatexRenderer";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Clock, ChevronLeft, ChevronRight, CheckSquare, Loader2, PlayCircle, AlertCircle } from "lucide-react";
+import { Clock, ChevronLeft, ChevronRight, CheckSquare, Loader2, PlayCircle } from "lucide-react";
 
 function fmt(s: number) {
   return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
@@ -13,7 +13,6 @@ function fmt(s: number) {
 export default function Simulador() {
   const [, navigate] = useLocation();
   const { data: active, isLoading } = trpc.simulations.getActive.useQuery();
-  const { data: progress } = trpc.simulations.getProgress.useQuery();
   const saveAnswer = trpc.simulations.saveAnswer.useMutation();
   const finish = trpc.simulations.finish.useMutation({
     onSuccess: (d) => navigate(`/resultado/${d.simulationId}`),
@@ -116,15 +115,7 @@ export default function Simulador() {
           })}
         </div>
 
-        <div className="rounded-xl p-4 flex items-start gap-3" style={{ background: "#FFF8E1", border: "1.5px solid #F9A825" }}>
-          <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: "#F57F17" }} />
-          <p className="text-sm" style={{ color: "#795548" }}>
-            Se ao iniciar não aparecerem questões, as questões ainda não foram importadas.{" "}
-            <a href="/admin/import?secret=IMPORTAR2024&year=2023" target="_blank" className="font-bold underline" style={{ color: "#01738d" }}>
-              Clique aqui para importar questões do ENEM 2023.
-            </a>
-          </p>
-        </div>
+
       </div>
     );
   }
