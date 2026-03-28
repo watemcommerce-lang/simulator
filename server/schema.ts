@@ -128,6 +128,36 @@ export const simulationAnswersRelations = relations(simulationAnswers, ({ one })
   question: one(questions, { fields: [simulationAnswers.questionId], references: [questions.id] }),
 }));
 
+
+// =============================================================================
+// Tabela: daily_challenges — 3 questões diárias por aluno
+// =============================================================================
+
+export const dailyChallenges = mysqlTable(
+  "daily_challenges",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    userId: int("user_id").notNull().references(() => users.id),
+    challengeDate: varchar("challenge_date", { length: 10 }).notNull(), // YYYY-MM-DD
+    questionIds: json("question_ids").$type<number[]>().notNull(),
+    answers: json("answers").$type<Record<string, string>>().notNull().default({}),
+    completed: boolean("completed").notNull().default(false),
+    correctCount: int("correct_count"),
+    completedAt: timestamp("completed_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    idxUserDate: index("idx_user_date").on(t.userId, t.challengeDate),
+  })
+);
+
+export const dailyChallengesRelations = relations(dailyChallenges, ({ one }) => ({
+  user: one(users, { fields: [dailyChallenges.userId], references: [users.id] }),
+}));
+
+export type DailyChallenge = typeof dailyChallenges.$inferSelect;
+export type NewDailyChallenge = typeof dailyChallenges.$inferInsert;
+
 // =============================================================================
 // Tipos
 // =============================================================================

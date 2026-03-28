@@ -18,11 +18,11 @@
  */
 
 import { z } from "zod";
-import { eq, and, desc, sql, inArray } from "drizzle-orm";
+import { eq, and, desc, sql, inArray, gte } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "./trpc";
-import { questions, simulations, simulationAnswers, users } from "./schema";
-import type { NewSimulation, NewSimulationAnswer } from "./schema";
+import { questions, simulations, simulationAnswers, users, dailyChallenges } from "./schema";
+import type { NewSimulation, NewSimulationAnswer, NewDailyChallenge } from "./schema";
 import {
   estimateTheta,
   thetaToEnemScore,
@@ -36,9 +36,9 @@ import type { QuestionResult } from "./tri";
 // =============================================================================
 
 const STAGE_CONFIG = {
-  1: { total: 15, minPass: 12, timeLimitPerQuestion: 5 * 60 }, // 5 min
-  2: { total: 25, minPass: 18, timeLimitPerQuestion: 4 * 60 }, // 4 min
-  3: { total: 45, minPass: 0,  timeLimitPerQuestion: 3 * 60 }, // 3 min
+  1: { total: 45, minPass: 0, timeLimitPerQuestion: 3 * 60 },
+  2: { total: 45, minPass: 0, timeLimitPerQuestion: 3 * 60 },
+  3: { total: 45, minPass: 0, timeLimitPerQuestion: 3 * 60 },
 } as const;
 
 type Stage = 1 | 2 | 3;
@@ -121,30 +121,7 @@ export const simulationsRouter = createTRPCRouter({
         });
       }
 
-      // --- Verifica desbloqueio de etapa ---
-      if (stage > 1) {
-        const prevStage = (stage - 1) as Stage;
-        const prevConfig = STAGE_CONFIG[prevStage];
-
-        const [bestPrev] = await ctx.db
-          .select({ correctCount: simulations.correctCount })
-          .from(simulations)
-          .where(
-            and(
-              eq(simulations.userId, userId),
-              eq(simulations.stage, prevStage),
-              eq(simulations.status, "completed")
-            )
-          )
-          .orderBy(desc(simulations.correctCount))
-          .limit(1);
-
-        if (!bestPrev || (bestPrev.correctCount ?? 0) < prevConfig.minPass) {
-          forbidden(
-            `Você precisa atingir ${prevConfig.minPass} acertos na Etapa ${prevStage} para desbloquear a Etapa ${stage}.`
-          );
-        }
-      }
+      // Etapa única: qualquer aluno pode iniciar diretamente
 
       // --- Sorteia questões ---
       const drawn = await drawQuestions(ctx.db, config.total);
@@ -599,17 +576,7 @@ export const simulationsRouter = createTRPCRouter({
       );
 
       const passed = best != null && (best.correctCount ?? 0) >= config.minPass;
-      const unlocked =
-        stage === 1 ||
-        (() => {
-          const prev = ([1, 2, 3] as Stage[]).find((s) => s === stage - 1)!;
-          const prevBest = completed.find(
-            (s) =>
-              s.stage === prev &&
-              (s.correctCount ?? 0) >= STAGE_CONFIG[prev].minPass
-          );
-          return prevBest != null;
-        })();
+      const unlocked = true; // Acesso livre sem progressão por etapas
 
       return {
         stage,
@@ -812,6 +779,186 @@ export const simulationsRouter = createTRPCRouter({
       .groupBy(questions.conteudo_principal)
       .orderBy(questions.conteudo_principal);
 
+    return rows;
+  }),
+
+
+  // ---------------------------------------------------------------------------
+  // DESAFIO DIÁRIO — 3 questões randômicas sem repetição
+  // ---------------------------------------------------------------------------
+  getDailyChallenge: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.user.id;
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+    // Verifica se já existe desafio de hoje
+    const [existing] = await ctx.db
+      .select()
+      .from(dailyChallenges)
+      .where(and(eq(dailyChallenges.userId, userId), eq(dailyChallenges.challengeDate, today)))
+      .limit(1);
+
+    if (existing) {
+      // Carrega as questões do desafio
+      const qs = await ctx.db
+        .select({
+          id: questions.id,
+          enunciado: questions.enunciado,
+          url_imagem: questions.url_imagem,
+          alternativas: questions.alternativas,
+          gabarito: questions.gabarito,
+          comentario_resolucao: questions.comentario_resolucao,
+          conteudo_principal: questions.conteudo_principal,
+          nivel_dificuldade: questions.nivel_dificuldade,
+        })
+        .from(questions)
+        .where(inArray(questions.id, existing.questionIds));
+
+      return {
+        challengeId: existing.id,
+        date: today,
+        completed: existing.completed,
+        correctCount: existing.correctCount,
+        answers: existing.answers as Record<string, string>,
+        questions: qs,
+      };
+    }
+
+    // Busca questões que o aluno nunca respondeu nos desafios
+    const pastChallenges = await ctx.db
+      .select({ questionIds: dailyChallenges.questionIds })
+      .from(dailyChallenges)
+      .where(eq(dailyChallenges.userId, userId));
+
+    const usedIds = new Set<number>(pastChallenges.flatMap((c) => c.questionIds));
+
+    // Sorteia 3 questões não usadas
+    let drawn = await ctx.db
+      .select({
+        id: questions.id,
+        enunciado: questions.enunciado,
+        url_imagem: questions.url_imagem,
+        alternativas: questions.alternativas,
+        gabarito: questions.gabarito,
+        comentario_resolucao: questions.comentario_resolucao,
+        conteudo_principal: questions.conteudo_principal,
+        nivel_dificuldade: questions.nivel_dificuldade,
+      })
+      .from(questions)
+      .where(eq(questions.active, true))
+      .orderBy(sql`RAND()`)
+      .limit(100);
+
+    const filtered = drawn.filter((q) => !usedIds.has(q.id)).slice(0, 3);
+    // Se acabaram questões novas, recomeça do banco inteiro
+    const final = filtered.length >= 3 ? filtered : drawn.slice(0, 3);
+
+    const newChallenge: NewDailyChallenge = {
+      userId,
+      challengeDate: today,
+      questionIds: final.map((q) => q.id),
+      answers: {},
+      completed: false,
+    };
+
+    const [result] = await ctx.db.insert(dailyChallenges).values(newChallenge);
+
+    return {
+      challengeId: Number(result.insertId),
+      date: today,
+      completed: false,
+      correctCount: null,
+      answers: {},
+      questions: final,
+    };
+  }),
+
+  saveDailyAnswer: protectedProcedure
+    .input(z.object({
+      challengeId: z.number().int().positive(),
+      questionId: z.number().int().positive(),
+      selectedAnswer: z.string().length(1),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.user.id;
+
+      const [challenge] = await ctx.db
+        .select()
+        .from(dailyChallenges)
+        .where(and(eq(dailyChallenges.id, input.challengeId), eq(dailyChallenges.userId, userId)))
+        .limit(1);
+
+      if (!challenge || challenge.completed) return { ok: false };
+
+      const [q] = await ctx.db
+        .select({ gabarito: questions.gabarito })
+        .from(questions)
+        .where(eq(questions.id, input.questionId))
+        .limit(1);
+
+      const newAnswers = { ...(challenge.answers as Record<string, string>), [input.questionId]: input.selectedAnswer.toUpperCase() };
+      const allAnswered = challenge.questionIds.every((id) => newAnswers[id]);
+      const correctCount = challenge.questionIds.filter((id) => {
+        const [qData] = [{ gabarito: q?.gabarito }];
+        return newAnswers[id] === (newAnswers[id] ? q?.gabarito : null);
+      }).length;
+
+      // Calcula acertos corretamente
+      await ctx.db
+        .update(dailyChallenges)
+        .set({
+          answers: newAnswers,
+          ...(allAnswered ? { completed: true, completedAt: new Date() } : {}),
+        })
+        .where(eq(dailyChallenges.id, input.challengeId));
+
+      return { ok: true, isCorrect: input.selectedAnswer.toUpperCase() === q?.gabarito };
+    }),
+
+  finishDailyChallenge: protectedProcedure
+    .input(z.object({ challengeId: z.number().int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.user.id;
+
+      const [challenge] = await ctx.db
+        .select()
+        .from(dailyChallenges)
+        .where(and(eq(dailyChallenges.id, input.challengeId), eq(dailyChallenges.userId, userId)))
+        .limit(1);
+
+      if (!challenge) return { ok: false };
+
+      const answers = challenge.answers as Record<string, string>;
+
+      // Busca gabaritos
+      const qs = await ctx.db
+        .select({ id: questions.id, gabarito: questions.gabarito })
+        .from(questions)
+        .where(inArray(questions.id, challenge.questionIds));
+
+      const correctCount = qs.filter((q) => answers[q.id] === q.gabarito).length;
+
+      await ctx.db
+        .update(dailyChallenges)
+        .set({ completed: true, correctCount, completedAt: new Date() })
+        .where(eq(dailyChallenges.id, input.challengeId));
+
+      return { ok: true, correctCount, total: challenge.questionIds.length };
+    }),
+
+  getDailyHistory: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.user.id;
+    const rows = await ctx.db
+      .select({
+        id: dailyChallenges.id,
+        challengeDate: dailyChallenges.challengeDate,
+        completed: dailyChallenges.completed,
+        correctCount: dailyChallenges.correctCount,
+        completedAt: dailyChallenges.completedAt,
+      })
+      .from(dailyChallenges)
+      .where(eq(dailyChallenges.userId, userId))
+      .orderBy(desc(dailyChallenges.challengeDate))
+      .limit(30);
     return rows;
   }),
 
