@@ -155,12 +155,16 @@ export function Alternative({ id, text, imageUrl, selected, correct, onClick, di
   const borderColor = isCorrectAnswer ? "#00897B"
     : isWrongSelected ? "#E53935"
     : selected ? "#01738d"
-    : "#E2D9EE";
+    : "var(--border)";
 
-  const bgColor = isCorrectAnswer ? "#E0F7F4"
-    : isWrongSelected ? "#FFEBEE"
-    : selected ? "#E0F7F4"
-    : "#fff";
+  const bgColor = isCorrectAnswer ? "var(--secondary)"
+    : isWrongSelected ? "var(--color-danger-soft, #FFEBEE)"
+    : selected ? "var(--secondary)"
+    : "var(--card)";
+
+  const textColor = isCorrectAnswer ? "var(--secondary-foreground)"
+    : isWrongSelected ? "#C62828"
+    : "var(--card-foreground)";
 
   return (
     <button
@@ -172,6 +176,7 @@ export function Alternative({ id, text, imageUrl, selected, correct, onClick, di
         borderRadius: "0.75rem",
         border: `2px solid ${borderColor}`,
         background: bgColor,
+        color: textColor,
         cursor: disabled ? "not-allowed" : "pointer",
         opacity: disabled && !selected && !isCorrectAnswer ? 0.6 : 1,
       }}

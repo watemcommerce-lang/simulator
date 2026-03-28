@@ -1,3 +1,4 @@
+import Cadastro from "@/pages/Cadastro";
 import { Switch, Route, Redirect } from "wouter";
 import { trpc } from "@/lib/trpc";
 import Navbar from "@/Navbar";
@@ -12,6 +13,7 @@ import AdminUsuarios from "@/AdminUsuarios";
 import Treino from "@/Treino";
 import Ranking from "@/Ranking";
 import Formulas from "@/Formulas";
+import DesafioPage from "@/DesafioPage";
 import Login from "@/Login";
 import { Loader2, AlertTriangle } from "lucide-react";
 
@@ -60,6 +62,7 @@ export default function App() {
   if (!session) return (
     <Switch>
       <Route path="/login"><Login /></Route>
+      <Route path="/cadastro"><Cadastro /></Route>
       <Route><Login /></Route>
     </Switch>
   );
@@ -82,6 +85,7 @@ export default function App() {
           <Route path="/treino"><Treino /></Route>
           <Route path="/ranking"><Ranking /></Route>
           <Route path="/formulas"><Formulas /></Route>
+          <Route path="/desafio"><DesafioPage /></Route>
           <Route path="/admin/questoes">
             {isAdmin ? <AdminQuestoes /> : <Redirect to="/" />}
           </Route>

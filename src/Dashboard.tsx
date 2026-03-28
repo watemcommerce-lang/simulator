@@ -7,7 +7,6 @@ import {
   Timer, CheckCircle2, XCircle, ChevronRight, Medal, Dumbbell
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { QuestionCard } from "@/LatexRenderer";
 import { useState } from "react";
 
 const FEATURES = [
@@ -19,55 +18,39 @@ const FEATURES = [
   { icon: Award,    title: "Resultados detalhados",    desc: "Veja cada questão com gabarito, sua resposta e análise por tópico." },
 ];
 
-type DailyQuestion = {
-  id: number;
-  enunciado: string;
-  url_imagem: string | null;
-  alternativas: Record<string, string>;
-  gabarito: string;
-  comentario_resolucao: string | null;
-  conteudo_principal: string;
-  nivel_dificuldade: string;
-};
+function DailyCard() {
+  const [, navigate] = useLocation();
+  const { data: daily, isLoading } = trpc.simulations.getDailyChallenge.useQuery();
 
-function DailyChallenge() {
-  const { data: daily, isLoading, refetch } = trpc.simulations.getDailyChallenge.useQuery();
-  const saveDailyAnswer = trpc.simulations.saveDailyAnswer.useMutation();
-  const finishDaily = trpc.simulations.finishDailyChallenge.useMutation({
-    onSuccess: () => refetch(),
-  });
-
-  const [localAnswers, setLocalAnswers] = useState<Record<number, string>>({});
-  const [revealed, setRevealed] = useState<Record<number, boolean>>({});
-  const [currentIdx, setCurrentIdx] = useState(0);
-
-  if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin" style={{ color: "#01738d" }} /></div>;
+  if (isLoading) return <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin" style={{ color: "#01738d" }} /></div>;
   if (!daily) return null;
 
-  const questions = daily.questions as DailyQuestion[];
-  const answers = { ...daily.answers, ...localAnswers };
-  const allAnswered = questions.every((q) => answers[q.id]);
+  const questions = daily.questions as any[];
+  const answers = daily.answers as Record<string, string>;
+  const answered = questions.filter(q => answers[q.id]).length;
 
   if (daily.completed) {
     const correct = daily.correctCount ?? 0;
     const total = questions.length;
+    const color = correct === total ? "#00695C" : correct >= 2 ? "#E65100" : "#C62828";
+    const bg = correct === total ? "var(--secondary)" : correct >= 2 ? "#FFF8E1" : "#FFEBEE";
+    const border = correct === total ? "#00BFA5" : correct >= 2 ? "#F9A825" : "#E53935";
     return (
-      <div className="rounded-2xl p-5" style={{ background: correct === total ? "#E0F7F4" : correct >= 2 ? "#FFF8E1" : "#FFEBEE", border: `1.5px solid ${correct === total ? "#00BFA5" : correct >= 2 ? "#F9A825" : "#E53935"}` }}>
-        <div className="flex items-center gap-3 mb-3">
-          <Trophy className="h-5 w-5" style={{ color: correct === total ? "#00695C" : correct >= 2 ? "#E65100" : "#C62828" }} />
-          <p className="font-bold" style={{ color: correct === total ? "#00695C" : correct >= 2 ? "#E65100" : "#C62828" }}>
-            Desafio de hoje concluído! {correct}/{total} acertos
-          </p>
+      <div className="rounded-2xl p-5 flex items-center justify-between gap-4" style={{ background: bg, border: `1.5px solid ${border}` }}>
+        <div className="flex items-center gap-3">
+          <Trophy className="h-5 w-5 flex-shrink-0" style={{ color }} />
+          <div>
+            <p className="font-bold text-sm" style={{ color }}>Desafio concluído hoje!</p>
+            <p className="text-xs mt-0.5" style={{ color }}>{correct}/{total} acertos</p>
+          </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-1.5">
           {questions.map((q, i) => {
-            const isCorrect = answers[q.id] === q.gabarito;
+            const ok = answers[q.id] === q.gabarito;
             return (
-              <div key={i} className="h-8 w-8 rounded-full flex items-center justify-center"
-                style={{ background: isCorrect ? "#00BFA5" : "#E53935" }}>
-                {isCorrect
-                  ? <CheckCircle2 className="h-4 w-4 text-white" />
-                  : <XCircle className="h-4 w-4 text-white" />}
+              <div key={i} className="h-7 w-7 rounded-full flex items-center justify-center"
+                style={{ background: ok ? "#00BFA5" : "#E53935" }}>
+                {ok ? <CheckCircle2 className="h-3.5 w-3.5 text-white" /> : <XCircle className="h-3.5 w-3.5 text-white" />}
               </div>
             );
           })}
@@ -76,81 +59,30 @@ function DailyChallenge() {
     );
   }
 
-  const q = questions[currentIdx];
-  if (!q) return null;
-
-  const isRevealed = revealed[q.id];
-
-  async function handleAnswer(alt: string) {
-    if (revealed[q.id]) return;
-    setLocalAnswers((p) => ({ ...p, [q.id]: alt }));
-    setRevealed((p) => ({ ...p, [q.id]: true }));
-    await saveDailyAnswer.mutateAsync({ challengeId: daily!.challengeId, questionId: q.id, selectedAnswer: alt });
-  }
-
-  async function handleFinish() {
-    await finishDaily.mutateAsync({ challengeId: daily!.challengeId });
-  }
-
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ border: "1.5px solid #01738d44" }}>
-      <div className="px-5 py-3 flex items-center justify-between" style={{ background: "#E0F7F4" }}>
-        <div className="flex items-center gap-2">
-          <Flame className="h-4 w-4" style={{ color: "#E65100" }} />
-          <span className="font-bold text-sm" style={{ color: "#01738d" }}>Desafio do dia</span>
-        </div>
-        <div className="flex gap-1.5">
-          {questions.map((_, i) => (
-            <button key={i} onClick={() => setCurrentIdx(i)}
-              className="h-2 rounded-full transition-all"
-              style={{ width: currentIdx === i ? 20 : 8, background: answers[questions[i].id] ? "#01738d" : "#B2DFDB" }} />
-          ))}
-        </div>
-      </div>
-
-      <div className="p-4 space-y-4" style={{ background: "var(--card)" }}>
-        <QuestionCard
-          order={currentIdx + 1}
-          total={questions.length}
-          enunciado={q.enunciado}
-          url_imagem={q.url_imagem}
-          alternativas={q.alternativas}
-          selectedAnswer={localAnswers[q.id] ?? (daily.answers as Record<string,string>)[q.id] ?? null}
-          correctAnswer={isRevealed ? q.gabarito : null}
-          onAnswer={handleAnswer}
-          disabled={isRevealed}
-        />
-
-        {isRevealed && q.comentario_resolucao && (
-          <div className="rounded-xl p-3" style={{ background: "#E0F7F4", border: "1px solid #01738d22" }}>
-            <p className="text-xs font-semibold mb-1" style={{ color: "#01738d" }}>Resolução</p>
-            <p className="text-sm" style={{ color: "#004d61" }}>{q.comentario_resolucao}</p>
+    <button onClick={() => navigate("/desafio")} className="w-full text-left rounded-2xl p-5 transition-all hover:opacity-90"
+      style={{ background: "var(--teal-soft)", border: "1.5px solid #01738d44" }}>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "#01738d" }}>
+            <Flame className="h-5 w-5 text-white" />
           </div>
-        )}
-
-        <div className="flex justify-between gap-2">
-          <button onClick={() => setCurrentIdx(Math.max(0, currentIdx - 1))} disabled={currentIdx === 0}
-            className="px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-40"
-            style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
-            Anterior
-          </button>
-          {currentIdx < questions.length - 1 ? (
-            <button onClick={() => setCurrentIdx(currentIdx + 1)}
-              className="px-4 py-2 rounded-xl text-sm font-semibold text-white"
-              style={{ background: "#01738d" }}>
-              Próxima
-            </button>
-          ) : allAnswered ? (
-            <button onClick={handleFinish} disabled={finishDaily.isPending}
-              className="px-4 py-2 rounded-xl text-sm font-semibold text-white flex items-center gap-1"
-              style={{ background: "#01738d" }}>
-              {finishDaily.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-              Ver resultado
-            </button>
-          ) : null}
+          <div>
+            <p className="font-bold text-sm" style={{ color: "#01738d" }}>Desafio do dia</p>
+            <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+              {answered}/{questions.length} respondidas · Clique para começar
+            </p>
+          </div>
         </div>
+        <ChevronRight className="h-5 w-5 flex-shrink-0" style={{ color: "#01738d" }} />
       </div>
-    </div>
+      <div className="flex gap-1.5 mt-3">
+        {questions.map((_, i) => (
+          <div key={i} className="h-1.5 flex-1 rounded-full"
+            style={{ background: answers[questions[i].id] ? "#01738d" : "var(--border)" }} />
+        ))}
+      </div>
+    </button>
   );
 }
 
@@ -234,7 +166,7 @@ export default function Dashboard() {
       {/* Desafio diário */}
       <section>
         <h2 className="text-base font-bold mb-3" style={{ color: "var(--foreground)" }}>Desafio diário</h2>
-        <DailyChallenge />
+        <DailyCard />
       </section>
 
       {/* Stats semanais + gráfico */}

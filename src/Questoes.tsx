@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { LatexRenderer } from "@/LatexRenderer";
-import { ChevronDown, ChevronUp, Search, Loader2, Tag } from "lucide-react";
+import { ChevronDown, ChevronUp, Search, Loader2 } from "lucide-react";
 
 const TAGS_CONTEUDO = [
   "Razão, Proporção e Regra de Três",
@@ -23,6 +23,44 @@ const TAGS_CONTEUDO = [
   "Análise Combinatória",
   "Logaritmos",
 ];
+
+function FilterDropdown({ filterTag, setFilterTag }: { filterTag: string; setFilterTag: (t: string) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold w-full sm:w-auto transition-all"
+        style={{ background: "var(--muted)", color: "var(--foreground)", border: "1.5px solid var(--border)" }}
+      >
+        <div className="flex flex-col gap-0.5">
+          <span className="block w-4 h-0.5 rounded" style={{ background: "currentColor" }} />
+          <span className="block w-4 h-0.5 rounded" style={{ background: "currentColor" }} />
+          <span className="block w-3 h-0.5 rounded" style={{ background: "currentColor" }} />
+        </div>
+        {filterTag === "Todas" ? "Filtrar conteúdo" : filterTag}
+        {open ? <ChevronUp className="h-3.5 w-3.5 ml-auto" /> : <ChevronDown className="h-3.5 w-3.5 ml-auto" />}
+        {filterTag !== "Todas" && (
+          <span className="ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold" style={{ background: "#01738d", color: "#fff" }}>1</span>
+        )}
+      </button>
+
+      {open && (
+        <div className="mt-2 p-3 rounded-xl flex flex-wrap gap-2" style={{ background: "var(--card)", border: "1.5px solid var(--border)" }}>
+          {["Todas", ...TAGS_CONTEUDO].map((tag) => (
+            <button key={tag} onClick={() => { setFilterTag(tag); setOpen(false); }}
+              className="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
+              style={filterTag === tag
+                ? { background: "#01738d", color: "#fff" }
+                : { background: "var(--muted)", color: "var(--muted-foreground)" }}>
+              {tag}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Questoes() {
   const [search, setSearch] = useState("");
@@ -68,23 +106,8 @@ export default function Questoes() {
           onBlur={(e) => (e.target.style.borderColor = "#E2D9EE")} />
       </div>
 
-      {/* Filtro por tag */}
-      <div>
-        <p className="text-xs font-semibold mb-2 flex items-center gap-1.5" style={{ color: "#64748B" }}>
-          <Tag className="h-3.5 w-3.5" /> Filtrar por conteúdo:
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {["Todas", ...TAGS_CONTEUDO].map((tag) => (
-            <button key={tag} onClick={() => { setFilterTag(tag); setPage(1); }}
-              className="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
-              style={filterTag === tag
-                ? { background: "#01738d", color: "#fff" }
-                : { background: "#E0F7F4", color: "#01738d" }}>
-              {tag}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Filtro por tag — colapsável */}
+      <FilterDropdown filterTag={filterTag} setFilterTag={(t) => { setFilterTag(t); setPage(1); }} />
 
       {/* Contador */}
       <p className="text-sm" style={{ color: "#64748B" }}>
@@ -124,7 +147,7 @@ export default function Questoes() {
 
             return (
               <div key={q.id} className="rounded-xl overflow-hidden"
-                style={{ border: "1.5px solid #E2D9EE", background: "#fff" }}>
+                style={{ border: "1.5px solid var(--border)", background: "var(--card)" }}>
                 <button className="w-full flex items-start gap-3 px-4 py-3.5 text-left"
                   onClick={() => setOpenId(isOpen ? null : q.id)}>
                   <div className="h-8 w-8 rounded-lg flex-shrink-0 flex items-center justify-center text-xs font-black"
@@ -132,7 +155,7 @@ export default function Questoes() {
                     {q.conteudo_principal.slice(0, 2).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold" style={{ color: "#1A1A2E" }}>
+                    <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
                       {q.conteudo_principal}
                     </p>
                     <p className="text-xs" style={{ color: "#94A3B8" }}>
@@ -170,7 +193,7 @@ export default function Questoes() {
                         const file = typeof value === "object" ? value.file : null;
                         return (
                           <div key={id} className="flex gap-2 px-3 py-2 rounded-lg text-sm"
-                            style={{ background: "#F8FAFC" }}>
+                            style={{ background: "var(--muted)" }}>
                             <span className="font-bold flex-shrink-0 w-4" style={{ color: "#01738d" }}>{id}</span>
                             <div className="flex-1">
                               {file && <img src={file} alt={`Alt ${id}`} className="max-w-xs rounded mb-1" />}

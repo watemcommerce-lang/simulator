@@ -18,6 +18,7 @@ const NAV_LINKS: NavLinkItem[] = [
   { href: "/", label: "Início", icon: Home },
   { href: "/simulado", label: "Simulado ENEM", icon: ClipboardList },
   { href: "/treino", label: "Treino livre", icon: Dumbbell },
+  { href: "/desafio", label: "Desafio do dia", icon: Flame },
   { href: "/formulas", label: "Fórmulas", icon: FlaskConical },
   { href: "/historico", label: "Histórico", icon: History },
   { href: "/ranking", label: "Ranking", icon: Trophy },

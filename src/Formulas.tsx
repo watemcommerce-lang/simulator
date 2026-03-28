@@ -142,9 +142,12 @@ function SecaoCard({ secao }: { secao: Secao }) {
                   <div className="rounded-xl px-4 py-3 overflow-x-auto" style={{ background: secao.soft }}>
                     <LatexRenderer fontSize="base">{f.formula}</LatexRenderer>
                   </div>
-                  <p className="text-sm leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
-                    <LatexRenderer fontSize="sm">{f.descricao}</LatexRenderer>
-                  </p>
+                  <div>
+                    <p className="text-xs font-semibold mb-1" style={{ color: "#01738d" }}>Quando usar?</p>
+                    <p className="text-sm leading-relaxed" style={{ color: "var(--muted-foreground)" }}>
+                      <LatexRenderer fontSize="sm">{f.descricao}</LatexRenderer>
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
